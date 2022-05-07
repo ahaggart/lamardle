@@ -44,20 +44,20 @@ function getPreviousRow() {
     return document.getElementById("guess-" + (numGuesses - 1));
 }
 
-function appendLetter(letter) {
+function appendLetter(letter, grid) {
     if (curGuess.length == 5) {
         return;
     }
     curGuess += letter;
-    getCurrentRow().setLetters(curGuess);
+    grid.current.setLetters(curGuess);
 }
 
-function backspace() {
+function backspace(grid) {
     if (curGuess.length == 0) {
         return;
     }
     curGuess = curGuess.substring(0, curGuess.length - 1);
-    getCurrentRow().setLetters(curGuess);
+    grid.current.setLetters(curGuess);
 }
 
 function canGuess() {
@@ -168,20 +168,50 @@ class GridRow extends HTMLElement {
 
     setLetters(letters) {
         this.letters = letters || '';
-        const paddedLetters = this.letters.padEnd(5, ' ');
-        for (let i = 0; i < 5; i++) {
+        const paddedLetters = this.letters
+            .substring(0, NUM_LETTERS)
+            .padEnd(NUM_LETTERS, ' ');
+
+        for (let i = 0; i < NUM_LETTERS; i++) {
             const highlight = this.id && this.id.includes('guess') && i === this.letters.length;
             this.tiles[i].setHighlight(highlight);
             this.tiles[i].setLetter(paddedLetters[i]);
         }
+    }
+
+    isComplete() {
+        return this.letters.length === NUM_LETTERS;
+    }
+
+    doesMatch(other) {
+        if (!this.isComplete() || !other.isComplete()) {
+            return false;
+        }
+
+        var matchCount = 0;
+        for (let i = 0; i < NUM_LETTERS; i++) {
+            if (this.letters[i] === other.letters[i]) {
+                matchCount++;
+            }
+        }
+    
+        if (matchCount < REQUIRED_MATCHES) {
+            return false;
+        }
+
+        return true;
     }
 }
 
 customElements.define('grid-row', GridRow);
 
 class GameKeyboard extends HTMLElement {
-    constructor() {
+    constructor(grid) {
         super();
+
+        this.grid = grid;
+
+        this.letters = '';
 
         const keyboardContainer = document.createElement('div');
         keyboardContainer.style.margin = "0 5px";
@@ -189,6 +219,28 @@ class GameKeyboard extends HTMLElement {
         keyboardContainer.appendChild(this.createRow(' asdfghjkl '));
         keyboardContainer.appendChild(this.createRow('+zxcvbnm-'));
         this.appendChild(keyboardContainer);
+    }
+
+    backspace() {
+        if (this.letters.length == 0) {
+            return;
+        }
+        this.letters = this.letters.substring(0, this.letters.length - 1);
+        this.grid.current.setLetters(this.letters);
+    }
+
+    appendLetter(letter) {
+        if (this.letters.length == 5) {
+            return;
+        }
+        this.letters += letter;
+        this.grid.current.setLetters(this.letters);
+    }
+
+    submit() {
+        if (this.grid.submit()) {
+            this.letters = '';
+        }
     }
 
     createRow(letters) {
@@ -203,18 +255,18 @@ class GameKeyboard extends HTMLElement {
                 const key = document.createElement('button');
                 key.classList.add('key', 'one-point-five');
                 key.innerText = 'enter';
-                key.addEventListener('click', guess);
+                key.addEventListener('click', () => this.submit());
                 row.appendChild(key);
             } else if (letter === '-') {
                 const key = document.createElement('button');
                 key.classList.add('key', 'one-point-five');
                 key.innerText = 'del';
-                key.addEventListener('click', backspace);
+                key.addEventListener('click', () => this.backspace());
                 row.appendChild(key);
             } else {
                 const key = document.createElement('button');
                 key.classList.add('key');
-                key.addEventListener('click', () => appendLetter(letter));
+                key.addEventListener('click', () => this.appendLetter(letter));
                 key.innerText = letter;
                 row.appendChild(key);
             }
@@ -230,6 +282,7 @@ class GameGrid extends HTMLElement {
     constructor() {
         super();
 
+        this.id = 'game-grid';
         this.grid = document.createElement('div');
         this.grid.classList.add('grid');
         this.grid.id = 'grid';
@@ -238,21 +291,31 @@ class GameGrid extends HTMLElement {
         window.addEventListener('resize', this.resizeGrid);
 
         WORD_LIST.addListener(words => {
-            const start = new GridRow(-1);
-            start.setLetters(words[Math.floor(Math.random() * words.length)]);
-
-            const goal = new GridRow();
-            goal.setLetters(words[Math.floor(Math.random() * words.length)]); 
-            goal.id = 'goal';
-
-            this.grid.appendChild(new GridRow());
-            this.grid.appendChild(new GridRow());
-            this.grid.appendChild(new GridRow());
-            this.grid.appendChild(start);
-            this.grid.appendChild(new GridRow(0));
-            this.grid.appendChild(goal);
-       
+            this.words = words;
+            this.createRows();
         });
+    }
+
+    getRandomWord() {
+        return this.words[Math.floor(Math.random() * this.words.length)];
+    }
+
+    createRows() {
+        this.upper = new GridRow(-1);
+        this.upper.setLetters(this.getRandomWord());
+
+        this.lower = new GridRow();
+        this.lower.setLetters(this.getRandomWord()); 
+        this.lower.id = 'goal';
+
+        this.current = new GridRow();
+
+        this.grid.appendChild(new GridRow());
+        this.grid.appendChild(new GridRow());
+        this.grid.appendChild(new GridRow());
+        this.grid.appendChild(this.upper);
+        this.grid.appendChild(this.current);
+        this.grid.appendChild(this.lower);
     }
 
     resizeGrid() {
@@ -275,18 +338,71 @@ class GameGrid extends HTMLElement {
         this.grid.style.height = gridHeight + 'px';
         this.grid.style.marginBottom = (targetHeight - gridHeight) + 'px';
     }
+
+    submit() {
+        if (!this.current.isComplete()) {
+            return false;
+        }
+        const upperMatch = this.current.doesMatch(this.upper);
+        const lowerMatch = this.current.doesMatch(this.lower);
+
+        if (!upperMatch && !lowerMatch) {
+            return false;
+        }
+
+        numGuesses++;
+
+        if (upperMatch && lowerMatch) {
+            // win
+            return true;
+        }
+        
+        const newRow = new GridRow();
+
+        if (upperMatch) {
+            this.grid.children[0].remove();
+            this.upper = this.current;
+            this.current = newRow;
+            this.grid.insertBefore(this.current, this.lower);
+        } else {
+            this.grid.children[this.grid.children.length - 1].remove();
+            this.lower = this.current;
+            this.current = newRow;
+            this.grid.insertBefore(this.current, this.lower);
+        } 
+
+        return true;
+    }
 }
 
 customElements.define('game-grid', GameGrid);
 
-document.addEventListener('keydown', e => {
-    if (e.key === 'Backspace') {
-        backspace();
-    } else if (e.key === 'Enter') {
-        guess();
-    } else if (e.key.match(/^[a-z]$/)) {
-        appendLetter(e.key);
+class LamardleGame extends HTMLElement {
+    constructor() {
+        super();
+
+        this.container = document.createElement('div');
+        this.container.classList.add('container');
+        this.appendChild(this.container);
+
+        this.grid = new GameGrid();
+        this.container.append(this.grid)
+
+        this.keyboard = new GameKeyboard(this.grid);
+        this.container.append(this.keyboard);
+
+        document.addEventListener('keydown', e => {        
+            if (e.key === 'Backspace') {
+                this.keyboard.backspace();
+            } else if (e.key === 'Enter') {
+                this.keyboard.submit();
+            } else if (e.key.match(/^[a-z]$/)) {
+                this.keyboard.appendLetter(e.key);
+            }
+        });
     }
-});
+}
+
+customElements.define('lamardle-game', LamardleGame);
 
 loadWords(words => WORD_LIST.setWords(words));
