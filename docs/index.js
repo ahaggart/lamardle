@@ -10,6 +10,8 @@ const KEY_MARGIN = 5;
 const GRID_PADDING = 10;
 const HEADER_HEIGHT = 50;
 const INVALID_ANIMATION_LENGTH_MS = 400;
+const KEYBOARD_HEIGHT = KEY_HEIGHT * 3 + KEY_MARGIN * 2;
+const GRID_PADDING_WIDTH = GRID_PADDING * 2;
 
 class WordList {
     constructor(numLetters) {
@@ -84,11 +86,12 @@ customElements.define('grid-letter', GridLetter);
 class GridRow extends HTMLElement {
     tiles = [];
     letters = '';
-    constructor() {
+    constructor(config) {
         super();
+        this.config = config;
         this.classList.add('grid-row');
 
-        for (let i = 0; i < NUM_LETTERS; i++) {
+        for (let i = 0; i < this.config.letters; i++) {
             const tile = new GridLetter('', i);
             this.tiles.push(tile);
             this.appendChild(tile);
@@ -100,10 +103,10 @@ class GridRow extends HTMLElement {
     setLetters(letters) {
         this.letters = letters || '';
         const paddedLetters = this.letters
-            .substring(0, NUM_LETTERS)
-            .padEnd(NUM_LETTERS, ' ');
+            .substring(0, this.config.letters)
+            .padEnd(this.config.letters, ' ');
 
-        for (let i = 0; i < NUM_LETTERS; i++) {
+        for (let i = 0; i < this.config.letters; i++) {
             this.tiles[i].setLetter(paddedLetters[i]);
         }
     }
@@ -122,7 +125,7 @@ class GridRow extends HTMLElement {
     }
 
     isComplete() {
-        return this.letters.length === NUM_LETTERS;
+        return this.letters.length === this.config.letters;
     }
 
     doesMatch(other) {
@@ -131,13 +134,13 @@ class GridRow extends HTMLElement {
         }
 
         var matchCount = 0;
-        for (let i = 0; i < NUM_LETTERS; i++) {
+        for (let i = 0; i < this.config.letters; i++) {
             if (this.letters[i] === other.letters[i]) {
                 matchCount++;
             }
         }
     
-        if (matchCount < REQUIRED_MATCHES) {
+        if (matchCount < this.config.matches) {
             return false;
         }
 
@@ -226,10 +229,16 @@ class GameKeyboard extends HTMLElement {
 customElements.define('game-keyboard', GameKeyboard);
 
 class GameGrid extends HTMLElement {
-    constructor(winCallback) {
+    constructor(config, winCallback) {
         super();
 
+        this.config = config;
         this.winCallback = winCallback;
+
+        this.rowConfig = {
+            letters: this.config.letters,
+            matches: this.config.matches,
+        };
 
         this.numGuesses = 0;
 
@@ -239,8 +248,6 @@ class GameGrid extends HTMLElement {
         this.grid.id = 'grid';
         this.grid.style.setProperty('--num-rows', 7);
         this.appendChild(this.grid);
-        this.resizeGrid();
-        window.addEventListener('resize', this.resizeGrid);
 
         WORD_LIST.addListener(words => {
             this.words = words;
@@ -253,23 +260,23 @@ class GameGrid extends HTMLElement {
     }
 
     createRows() {
-        this.upper = new GridRow();
+        this.upper = new GridRow(this.rowConfig);
         this.upper.setLetters(this.getRandomWord());
 
-        this.lower = new GridRow();
+        this.lower = new GridRow(this.rowConfig);
         this.lower.setLetters(this.getRandomWord()); 
         this.lower.id = 'goal';
 
-        this.current = new GridRow();
+        this.current = new GridRow(this.rowConfig);
         this.current.setHighlight(true);
 
-        this.grid.appendChild(new GridRow());
-        this.grid.appendChild(new GridRow());
+        this.grid.appendChild(new GridRow(this.rowConfig));
+        this.grid.appendChild(new GridRow(this.rowConfig));
         this.grid.appendChild(this.upper);
         this.grid.appendChild(this.current);
         this.grid.appendChild(this.lower);
-        this.grid.appendChild(new GridRow());
-        this.grid.appendChild(new GridRow());
+        this.grid.appendChild(new GridRow(this.rowConfig));
+        this.grid.appendChild(new GridRow(this.rowConfig));
     }
 
     setLetters(letters) {
@@ -277,25 +284,27 @@ class GameGrid extends HTMLElement {
         this.current.updateMatches(this.upper, this.lower);
     }
 
-    resizeGrid() {
-        const gridPaddingWidth = GRID_PADDING * 2;
-        const targetWidth = Math.min(MAX_WIDTH, window.innerWidth - gridPaddingWidth);
-        const columnGapWidth = GRID_ROW_GAP * (NUM_LETTERS - 1)
-        const maxTileWidth = Math.floor((targetWidth - columnGapWidth) / NUM_LETTERS);
+    getTileSize(gridArea) {
+        const columnGapWidth = GRID_ROW_GAP * (this.config.letters - 1)
+        const maxTileWidth = Math.floor((gridArea.width - columnGapWidth) / this.config.letters);
     
-        const keyboardHeight = KEY_HEIGHT * 3 + KEY_MARGIN * 2;
         const gridPaddingHeight = GRID_PADDING * 2;
-        const targetHeight = window.innerHeight - keyboardHeight - gridPaddingHeight - HEADER_HEIGHT;
-        const rowGapHeight = GRID_ROW_GAP * (NUM_ROWS - 1);
-        const maxTileHeight = Math.floor((targetHeight - rowGapHeight) / NUM_ROWS);
+        const rowGapHeight = GRID_ROW_GAP * (this.config.rows - 1);
+        const maxTileHeight = Math.floor((gridArea.height - rowGapHeight - gridPaddingHeight) / this.config.rows);
     
-        const tileSize = Math.min(maxTileWidth, maxTileHeight);
-        const gridWidth = tileSize * NUM_LETTERS + columnGapWidth;
-        const gridHeight = tileSize * NUM_ROWS + rowGapHeight;
+        return Math.min(maxTileWidth, maxTileHeight);
+    }
+
+    resize(size) {
+        const columnGapWidth = GRID_ROW_GAP * (this.config.letters - 1)
+        const rowGapHeight = GRID_ROW_GAP * (this.config.rows - 1);
+        const tileSize = this.getTileSize(size);
+        const gridWidth = tileSize * this.config.letters + columnGapWidth;
+        const gridHeight = tileSize * this.config.rows + rowGapHeight;
     
         this.grid.style.width = gridWidth + 'px';
         this.grid.style.height = gridHeight + 'px';
-        this.grid.style.marginBottom = (targetHeight - gridHeight) + 'px';
+        this.grid.style.marginBottom = (size.height - gridHeight - 10) + 'px';
     }
 
     submit() {
@@ -318,7 +327,7 @@ class GameGrid extends HTMLElement {
             return true;
         }
         
-        const newRow = new GridRow();
+        const newRow = new GridRow(this.rowConfig);
         newRow.setHighlight(true);
         this.current.setHighlight(false);
 
@@ -362,11 +371,20 @@ class LamardleGame extends HTMLElement {
         this.header.classList.add('header');
         this.container.appendChild(this.header);
 
-        this.grid = new GameGrid(() => this.winGame());
+        const gridConfig = {
+            rows: 7,
+            letters: 5,
+            matches: 3,
+        }
+
+        this.grid = new GameGrid(gridConfig, () => this.winGame());
         this.container.append(this.grid)
 
         this.keyboard = new GameKeyboard(this.grid);
         this.container.append(this.keyboard);
+
+        this.resizeGrid();
+        window.addEventListener('resize', () => this.resizeGrid());
 
         document.addEventListener('keydown', e => {        
             if (e.key === 'Backspace') {
@@ -376,6 +394,13 @@ class LamardleGame extends HTMLElement {
             } else if (e.key.match(/^[a-z]$/)) {
                 this.keyboard.appendLetter(e.key);
             }
+        });
+    }
+
+    resizeGrid() {
+        this.grid.resize({
+            width: Math.min(MAX_WIDTH, window.innerWidth - GRID_PADDING_WIDTH),
+            height: window.innerHeight - KEYBOARD_HEIGHT - HEADER_HEIGHT
         });
     }
 
