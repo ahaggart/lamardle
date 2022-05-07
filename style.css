@@ -95,3 +95,9 @@ html,body {
 .one-point-five {
     flex: 1.5;
 }
+
+#win-msg {
+    z-index: 1;
+    margin: 10% auto;
+    position: relative;
+}

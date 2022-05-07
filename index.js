@@ -12,31 +12,29 @@ const KEY_HEIGHT = 58;
 const KEY_MARGIN = 5;
 const GRID_PADDING = 10;
 
-function resizeGrid() {
-    const gridPaddingWidth = GRID_PADDING * 2;
-    const targetWidth = Math.min(MAX_WIDTH, window.innerWidth - gridPaddingWidth);
-    const columnGapWidth = GRID_ROW_GAP * (NUM_LETTERS - 1)
-    const maxTileWidth = Math.floor((targetWidth - columnGapWidth) / NUM_LETTERS);
+class WordList {
+    constructor(numLetters) {
+        this.numLetters = numLetters;
+        this.isReady = false;
+        this.onReady = [];
+        this.words = [];
+    }
 
-    const keyboardHeight = KEY_HEIGHT * 3 + KEY_MARGIN * 2;
-    const gridPaddingHeight = GRID_PADDING * 2;
-    const targetHeight = window.innerHeight - keyboardHeight - gridPaddingHeight;
-    const rowGapHeight = GRID_ROW_GAP * (NUM_ROWS - 1);
-    const maxTileHeight = Math.floor((targetHeight - rowGapHeight) / NUM_ROWS);
+    addListener(callback) {
+        this.onReady.push(callback);
+        if (this.isReady) {
+            callback(words);
+        }
+    }
 
-    const tileSize = Math.min(maxTileWidth, maxTileHeight);
-    const gridWidth = tileSize * NUM_LETTERS + columnGapWidth;
-    const gridHeight = tileSize * NUM_ROWS + rowGapHeight;
-
-    const grid = document.getElementById('grid');
-    grid.style.width = gridWidth + 'px';
-    grid.style.height = gridHeight + 'px';
-    grid.style.marginBottom = (targetHeight - gridHeight) + 'px';
+    setWords(rawWords) {
+        this.words = rawWords.split('\n');
+        this.isReady = true;
+        this.onReady.forEach(callback => callback(this.words));
+    }
 }
 
-resizeGrid();
-
-window.addEventListener('resize', resizeGrid);
+const WORD_LIST = new WordList(NUM_LETTERS);
 
 function getCurrentRow() {
     return document.getElementById("guess-" + numGuesses);
@@ -83,6 +81,10 @@ function canGuess() {
         return false;
     }
 
+    if (!WORD_LIST.words.includes(currentRow.letters)) {
+        return false;
+    }
+
     return true;
 }
 
@@ -99,6 +101,19 @@ function guess() {
     );
     grid.children[0].remove();
     curGuess = '';
+}
+
+function loadWords(callback) {
+    const request = new XMLHttpRequest();
+    request.onreadystatechange = e => {
+        if (request.readyState === XMLHttpRequest.DONE) {
+            if (request.status === 200) {
+                callback(request.responseText);
+            }
+        }
+    };
+    request.open('GET', 'five-letters.txt');
+    request.send();
 }
 
 class GridLetter extends HTMLElement {
@@ -137,7 +152,10 @@ class GridRow extends HTMLElement {
         } else {
             this.guessId = guessId;
         }
-        this.id = this.id || ('guess-' + this.guessId);
+
+        if (this.guessId !== undefined) {
+            this.id = 'guess-' + this.guessId;
+        }
 
         for (let i = 0; i < 5; i++) {
             const tile = new GridLetter(this.guessId, i, '');
@@ -208,6 +226,59 @@ class GameKeyboard extends HTMLElement {
 
 customElements.define('game-keyboard', GameKeyboard);
 
+class GameGrid extends HTMLElement {
+    constructor() {
+        super();
+
+        this.grid = document.createElement('div');
+        this.grid.classList.add('grid');
+        this.grid.id = 'grid';
+        this.appendChild(this.grid);
+        this.resizeGrid();
+        window.addEventListener('resize', this.resizeGrid);
+
+        WORD_LIST.addListener(words => {
+            const start = new GridRow(-1);
+            start.setLetters(words[Math.floor(Math.random() * words.length)]);
+
+            const goal = new GridRow();
+            goal.setLetters(words[Math.floor(Math.random() * words.length)]); 
+            goal.id = 'goal';
+
+            this.grid.appendChild(new GridRow());
+            this.grid.appendChild(new GridRow());
+            this.grid.appendChild(new GridRow());
+            this.grid.appendChild(start);
+            this.grid.appendChild(new GridRow(0));
+            this.grid.appendChild(goal);
+       
+        });
+    }
+
+    resizeGrid() {
+        const gridPaddingWidth = GRID_PADDING * 2;
+        const targetWidth = Math.min(MAX_WIDTH, window.innerWidth - gridPaddingWidth);
+        const columnGapWidth = GRID_ROW_GAP * (NUM_LETTERS - 1)
+        const maxTileWidth = Math.floor((targetWidth - columnGapWidth) / NUM_LETTERS);
+    
+        const keyboardHeight = KEY_HEIGHT * 3 + KEY_MARGIN * 2;
+        const gridPaddingHeight = GRID_PADDING * 2;
+        const targetHeight = window.innerHeight - keyboardHeight - gridPaddingHeight;
+        const rowGapHeight = GRID_ROW_GAP * (NUM_ROWS - 1);
+        const maxTileHeight = Math.floor((targetHeight - rowGapHeight) / NUM_ROWS);
+    
+        const tileSize = Math.min(maxTileWidth, maxTileHeight);
+        const gridWidth = tileSize * NUM_LETTERS + columnGapWidth;
+        const gridHeight = tileSize * NUM_ROWS + rowGapHeight;
+    
+        this.grid.style.width = gridWidth + 'px';
+        this.grid.style.height = gridHeight + 'px';
+        this.grid.style.marginBottom = (targetHeight - gridHeight) + 'px';
+    }
+}
+
+customElements.define('game-grid', GameGrid);
+
 document.addEventListener('keydown', e => {
     if (e.key === 'Backspace') {
         backspace();
@@ -218,5 +289,4 @@ document.addEventListener('keydown', e => {
     }
 });
 
-
-console.log("got here");
+loadWords(words => WORD_LIST.setWords(words));
