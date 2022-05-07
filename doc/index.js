@@ -6,7 +6,7 @@ const GRID_ROW_GAP = 5;
 const GRID_COL_GAP = 5;
 const MAX_WIDTH = 500;
 const KEYBOARD_HEIGHT_MIN_PERCENT = 0.25;
-const NUM_ROWS = 6;
+const NUM_ROWS = 7;
 const NUM_LETTERS = 5;
 const KEY_HEIGHT = 58;
 const KEY_MARGIN = 5;
@@ -35,73 +35,6 @@ class WordList {
 }
 
 const WORD_LIST = new WordList(NUM_LETTERS);
-
-function getCurrentRow() {
-    return document.getElementById("guess-" + numGuesses);
-}
-
-function getPreviousRow() {
-    return document.getElementById("guess-" + (numGuesses - 1));
-}
-
-function appendLetter(letter, grid) {
-    if (curGuess.length == 5) {
-        return;
-    }
-    curGuess += letter;
-    grid.current.setLetters(curGuess);
-}
-
-function backspace(grid) {
-    if (curGuess.length == 0) {
-        return;
-    }
-    curGuess = curGuess.substring(0, curGuess.length - 1);
-    grid.current.setLetters(curGuess);
-}
-
-function canGuess() {
-    const currentRow = getCurrentRow();
-
-    if (currentRow.letters.length !== 5) {
-        return false;
-    }
-
-    const previousRow = getPreviousRow();
-
-    var matchCount = 0;
-    
-    for (let i = 0; i < 5; i++) {
-        if (currentRow.letters[i] === previousRow.letters[i]) {
-            matchCount++;
-        }
-    }
-
-    if (matchCount < REQUIRED_MATCHES) {
-        return false;
-    }
-
-    if (!WORD_LIST.words.includes(currentRow.letters)) {
-        return false;
-    }
-
-    return true;
-}
-
-function guess() {
-    if (!canGuess()) {
-        return;
-    }
-    numGuesses++;
-    const row = new GridRow(numGuesses);
-    const grid = document.getElementById("grid");
-    grid.insertBefore(
-        row,
-        document.getElementById("goal")
-    );
-    grid.children[0].remove();
-    curGuess = '';
-}
 
 function loadWords(callback) {
     const request = new XMLHttpRequest();
@@ -312,10 +245,11 @@ class GameGrid extends HTMLElement {
 
         this.grid.appendChild(new GridRow());
         this.grid.appendChild(new GridRow());
-        this.grid.appendChild(new GridRow());
         this.grid.appendChild(this.upper);
         this.grid.appendChild(this.current);
         this.grid.appendChild(this.lower);
+        this.grid.appendChild(new GridRow());
+        this.grid.appendChild(new GridRow());
     }
 
     resizeGrid() {

@@ -19,10 +19,11 @@ html,body {
 }
 
 .grid {
+    --num-rows: 7;
     margin: auto;
     display: grid;
     padding: 10px;
-    grid-template-rows: repeat(6, 1fr);
+    grid-template-rows: repeat(var(--num-rows), 1fr);
     grid-row-gap: 5px;
     box-sizing: border-box;
 }
