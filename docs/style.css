@@ -14,6 +14,7 @@ html,body {
 
 .container {
     width: 100%;
+    height: 100%;
     max-width: 500px;
     margin: auto;
 }
@@ -97,8 +98,40 @@ html,body {
     flex: 1.5;
 }
 
-#win-msg {
+/* game-grid,game-keyboard {
+    z-index: 0;
+} */
+
+.winOverlay {
     z-index: 1;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.winMessage {
     margin: 10% auto;
-    position: relative;
+    width: fit-content;
+    background-color: lavender;
+    font-size: 2rem;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.letter.upper-match {
+    background: linear-gradient(0, var(--non-matches-color) 50%, var(--matches-color) 50%)
+}
+
+.letter.lower-match {
+    background: linear-gradient(0, var(--matches-color) 50%, var(--non-matches-color) 50%)
+}
+
+.letter.both-match {
+    background-color: var(--matches-color);
+}
+
+.letter.no-match {
+    background-color: var(--non-matches-color);
 }

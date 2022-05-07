@@ -1,6 +1,3 @@
-var numGuesses = 0;
-var curGuess = '';
-
 const REQUIRED_MATCHES = 3;
 const GRID_ROW_GAP = 5;
 const GRID_COL_GAP = 5;
@@ -50,21 +47,29 @@ function loadWords(callback) {
 }
 
 class GridLetter extends HTMLElement {
-    constructor(guessId, pos, letter) {
+    constructor(letter, pos) {
         super();
         this.pos = pos;
-        this.guessId = guessId;
-        this.id = 'letter-' + guessId + '-' + pos;
-        this.setLetter(letter || this.getAttribute("letter") || "");
-        this.classList.add('letter');
+        this.setLetter(letter || '');
+        this.classList.add('letter', 'no-match');
     }
 
     setLetter(letter) {
         this.letter = letter;
         this.innerText = letter;
-        const prev = document.getElementById("letter-" + (this.guessId-1) + '-' + this.pos);
-        const matches = prev && (prev.letter === this.letter);
-        this.style.backgroundColor = matches ? 'var(--matches-color)' : 'var(--non-matches-color)';
+    }
+
+    setMatch(matchUpper, matchLower) {
+        this.classList.remove('both-match', 'upper-match', 'lower-match', 'no-match');
+        if (matchUpper && matchLower) {
+            this.classList.add('both-match');
+        } else if (matchLower) {
+            this.classList.add('lower-match');
+        } else if (matchUpper) {
+            this.classList.add('upper-match');
+        } else {
+            this.classList.add('no-match');
+        }
     }
 
     setHighlight(isHighlighted) {
@@ -77,21 +82,12 @@ customElements.define('grid-letter', GridLetter);
 class GridRow extends HTMLElement {
     tiles = [];
     letters = '';
-    constructor(guessId) {
+    constructor() {
         super();
         this.classList.add('grid-row');
-        if (this.hasAttribute('guess-id')) {
-            this.guessId = this.getAttribute('guess-id');
-        } else {
-            this.guessId = guessId;
-        }
 
-        if (this.guessId !== undefined) {
-            this.id = 'guess-' + this.guessId;
-        }
-
-        for (let i = 0; i < 5; i++) {
-            const tile = new GridLetter(this.guessId, i, '');
+        for (let i = 0; i < NUM_LETTERS; i++) {
+            const tile = new GridLetter('', i);
             this.tiles.push(tile);
             this.appendChild(tile);
         }
@@ -106,9 +102,16 @@ class GridRow extends HTMLElement {
             .padEnd(NUM_LETTERS, ' ');
 
         for (let i = 0; i < NUM_LETTERS; i++) {
-            const highlight = this.id && this.id.includes('guess') && i === this.letters.length;
-            this.tiles[i].setHighlight(highlight);
             this.tiles[i].setLetter(paddedLetters[i]);
+        }
+    }
+
+    updateMatches(upper, lower) {
+        for (let i = 0; i < this.tiles.length; i++) {
+            this.tiles[i].setMatch(
+                this.tiles[i].letter === upper.tiles[i].letter,
+                this.tiles[i].letter === lower.tiles[i].letter,
+            );
         }
     }
 
@@ -159,7 +162,7 @@ class GameKeyboard extends HTMLElement {
             return;
         }
         this.letters = this.letters.substring(0, this.letters.length - 1);
-        this.grid.current.setLetters(this.letters);
+        this.grid.setLetters(this.letters);
     }
 
     appendLetter(letter) {
@@ -167,7 +170,7 @@ class GameKeyboard extends HTMLElement {
             return;
         }
         this.letters += letter;
-        this.grid.current.setLetters(this.letters);
+        this.grid.setLetters(this.letters);
     }
 
     submit() {
@@ -212,13 +215,18 @@ class GameKeyboard extends HTMLElement {
 customElements.define('game-keyboard', GameKeyboard);
 
 class GameGrid extends HTMLElement {
-    constructor() {
+    constructor(winCallback) {
         super();
+
+        this.winCallback = winCallback;
+
+        this.numGuesses = 0;
 
         this.id = 'game-grid';
         this.grid = document.createElement('div');
         this.grid.classList.add('grid');
         this.grid.id = 'grid';
+        this.grid.style.setProperty('--num-rows', 7);
         this.appendChild(this.grid);
         this.resizeGrid();
         window.addEventListener('resize', this.resizeGrid);
@@ -234,7 +242,7 @@ class GameGrid extends HTMLElement {
     }
 
     createRows() {
-        this.upper = new GridRow(-1);
+        this.upper = new GridRow();
         this.upper.setLetters(this.getRandomWord());
 
         this.lower = new GridRow();
@@ -250,6 +258,11 @@ class GameGrid extends HTMLElement {
         this.grid.appendChild(this.lower);
         this.grid.appendChild(new GridRow());
         this.grid.appendChild(new GridRow());
+    }
+
+    setLetters(letters) {
+        this.current.setLetters(letters);
+        this.current.updateMatches(this.upper, this.lower);
     }
 
     resizeGrid() {
@@ -284,10 +297,11 @@ class GameGrid extends HTMLElement {
             return false;
         }
 
-        numGuesses++;
+        this.numGuesses++;
 
         if (upperMatch && lowerMatch) {
-            // win
+            console.log('you win')
+            this.winCallback();
             return true;
         }
         
@@ -319,7 +333,16 @@ class LamardleGame extends HTMLElement {
         this.container.classList.add('container');
         this.appendChild(this.container);
 
-        this.grid = new GameGrid();
+        this.winPopup = document.createElement('div');
+        this.winPopup.classList.add('winOverlay');
+        this.winPopup.style.display = 'none';
+        this.container.appendChild(this.winPopup);
+
+        this.winMessage = document.createElement('div');
+        this.winMessage.classList.add('winMessage');
+        this.winPopup.appendChild(this.winMessage);
+
+        this.grid = new GameGrid(() => this.winGame());
         this.container.append(this.grid)
 
         this.keyboard = new GameKeyboard(this.grid);
@@ -334,6 +357,11 @@ class LamardleGame extends HTMLElement {
                 this.keyboard.appendLetter(e.key);
             }
         });
+    }
+
+    winGame() {
+        this.winMessage.innerText = 'You Won in ' + this.grid.numGuesses + ' tries!';
+        this.winPopup.style.display = 'block';
     }
 }
 
