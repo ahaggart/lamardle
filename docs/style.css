@@ -1,15 +1,32 @@
 :root {
-    --highlight-color: gold;
-    --non-highlight-color: black;
-    --matches-color: green;
-    --non-matches-color: gray;
-    --key-color: gray;
+    --highlight-color: #72a1b5;
+    --non-highlight-color: #4d6570;
+    --matches-color: #5e1463;
+    --non-matches-color: #330b36;
+    --key-color: #577c8c;
+    --enter-key-color: green;
+    --delete-key-color: maroon;
     --key-text-color: white;
+    --main-background-color: #330b36;
+    --tile-text-color: lightgray;
 }
 
 html,body {
     margin: 0;
     height: 100%;
+    background-color: var(--main-background-color);
+}
+
+.header {
+    width: 90%;
+    margin: 0 auto;
+    text-align: center;
+    /* height: 50px; */
+    padding-top: calc(50px - 2rem);
+    color: var(--tile-text-color);
+    font-size: 2rem;
+    font-family: Copperplate, Copperplate Gothic Light, fantasy;
+    border-bottom-style: solid;
 }
 
 .container {
@@ -46,6 +63,7 @@ html,body {
     align-items: center;
     font-size: 2rem;
     line-height: 2rem;
+    color: var(--tile-text-color);
     font-weight: bold;
     vertical-align: middle;
     box-sizing: border-box;
@@ -53,6 +71,8 @@ html,body {
     user-select: none;
     border-width: 2px;
     border-style: solid;
+    border-color: var(--non-highlight-color);
+    border-radius: 10px;
 }
 
 .game-keyboard-row {
@@ -84,6 +104,14 @@ html,body {
     text-transform: uppercase;
     touch-action: manipulation;
     -webkit-tap-highlight-color: rgba(0,0,0,0.3);
+}
+
+.key.enter {
+    background-color: var(--enter-key-color);
+}
+
+.key.delete {
+    background-color: var(--delete-key-color);
 }
 
 .key:last-of-type {

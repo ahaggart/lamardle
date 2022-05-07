@@ -8,6 +8,7 @@ const NUM_LETTERS = 5;
 const KEY_HEIGHT = 58;
 const KEY_MARGIN = 5;
 const GRID_PADDING = 10;
+const HEADER_HEIGHT = 50;
 
 class WordList {
     constructor(numLetters) {
@@ -115,6 +116,10 @@ class GridRow extends HTMLElement {
         }
     }
 
+    setHighlight(isHighlighted) {
+        this.tiles.forEach(tile => tile.setHighlight(isHighlighted));
+    }
+
     isComplete() {
         return this.letters.length === NUM_LETTERS;
     }
@@ -189,13 +194,13 @@ class GameKeyboard extends HTMLElement {
                 row.appendChild(spacer);
             } else if (letter === '+') {
                 const key = document.createElement('button');
-                key.classList.add('key', 'one-point-five');
+                key.classList.add('key', 'one-point-five', 'enter');
                 key.innerText = 'enter';
                 key.addEventListener('click', () => this.submit());
                 row.appendChild(key);
             } else if (letter === '-') {
                 const key = document.createElement('button');
-                key.classList.add('key', 'one-point-five');
+                key.classList.add('key', 'one-point-five', 'delete');
                 key.innerText = 'del';
                 key.addEventListener('click', () => this.backspace());
                 row.appendChild(key);
@@ -250,6 +255,7 @@ class GameGrid extends HTMLElement {
         this.lower.id = 'goal';
 
         this.current = new GridRow();
+        this.current.setHighlight(true);
 
         this.grid.appendChild(new GridRow());
         this.grid.appendChild(new GridRow());
@@ -273,7 +279,7 @@ class GameGrid extends HTMLElement {
     
         const keyboardHeight = KEY_HEIGHT * 3 + KEY_MARGIN * 2;
         const gridPaddingHeight = GRID_PADDING * 2;
-        const targetHeight = window.innerHeight - keyboardHeight - gridPaddingHeight;
+        const targetHeight = window.innerHeight - keyboardHeight - gridPaddingHeight - HEADER_HEIGHT;
         const rowGapHeight = GRID_ROW_GAP * (NUM_ROWS - 1);
         const maxTileHeight = Math.floor((targetHeight - rowGapHeight) / NUM_ROWS);
     
@@ -300,12 +306,13 @@ class GameGrid extends HTMLElement {
         this.numGuesses++;
 
         if (upperMatch && lowerMatch) {
-            console.log('you win')
             this.winCallback();
             return true;
         }
         
         const newRow = new GridRow();
+        newRow.setHighlight(true);
+        this.current.setHighlight(false);
 
         if (upperMatch) {
             this.grid.children[0].remove();
@@ -342,6 +349,11 @@ class LamardleGame extends HTMLElement {
         this.winMessage.classList.add('winMessage');
         this.winPopup.appendChild(this.winMessage);
 
+        this.header = document.createElement('div');
+        this.header.innerText = 'LAMARDLE';
+        this.header.classList.add('header');
+        this.container.appendChild(this.header);
+
         this.grid = new GameGrid(() => this.winGame());
         this.container.append(this.grid)
 
@@ -360,7 +372,7 @@ class LamardleGame extends HTMLElement {
     }
 
     winGame() {
-        this.winMessage.innerText = 'You Won in ' + this.grid.numGuesses + ' tries!';
+        this.winMessage.innerText = 'You won in ' + this.grid.numGuesses + ' tries!';
         this.winPopup.style.display = 'block';
     }
 }
