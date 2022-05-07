@@ -139,13 +139,25 @@ html,body {
     animation-duration: 400ms;
 }
 
-.winOverlay {
+.overlay {
     z-index: 1;
     width: 100%;
     height: 100%;
     position: absolute;
     top: 0;
     left: 0;
+    display: none;
+}
+
+.tutorial {
+    background-color: var(--main-background-color);
+    color: var(--tile-text-color);
+    font-size: 1rem;
+}
+
+.tutorial-title {
+    font-size: 2rem;
+    text-align: center;
 }
 
 .winMessage {

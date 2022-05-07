@@ -229,11 +229,11 @@ class GameKeyboard extends HTMLElement {
 customElements.define('game-keyboard', GameKeyboard);
 
 class GameGrid extends HTMLElement {
-    constructor(config, winCallback) {
+    constructor(config, callbacks) {
         super();
 
         this.config = config;
-        this.winCallback = winCallback;
+        this.winCallback = callbacks.onWin;
 
         this.rowConfig = {
             letters: this.config.letters,
@@ -246,12 +246,15 @@ class GameGrid extends HTMLElement {
         this.grid = document.createElement('div');
         this.grid.classList.add('grid');
         this.grid.id = 'grid';
-        this.grid.style.setProperty('--num-rows', 7);
+        this.grid.style.setProperty('--num-rows', this.config.rows);
         this.appendChild(this.grid);
 
         WORD_LIST.addListener(words => {
             this.words = words;
             this.createRows();
+            if (callbacks.onLoad) {
+                callbacks.onLoad(this);
+            }
         });
     }
 
@@ -270,13 +273,16 @@ class GameGrid extends HTMLElement {
         this.current = new GridRow(this.rowConfig);
         this.current.setHighlight(true);
 
-        this.grid.appendChild(new GridRow(this.rowConfig));
-        this.grid.appendChild(new GridRow(this.rowConfig));
+        const rowsAbove = Math.ceil((this.config.rows - 3) / 2.0);
+        const rowsBelow = Math.floor((this.config.rows - 3) / 2.0);
+
+        Array(rowsAbove).fill()
+            .forEach(() => this.grid.appendChild(new GridRow(this.rowConfig)))
         this.grid.appendChild(this.upper);
         this.grid.appendChild(this.current);
         this.grid.appendChild(this.lower);
-        this.grid.appendChild(new GridRow(this.rowConfig));
-        this.grid.appendChild(new GridRow(this.rowConfig));
+        Array(rowsBelow).fill()
+            .forEach(() => this.grid.appendChild(new GridRow(this.rowConfig)))
     }
 
     setLetters(letters) {
@@ -295,6 +301,11 @@ class GameGrid extends HTMLElement {
         return Math.min(maxTileWidth, maxTileHeight);
     }
 
+    /**
+     * 
+     * @param {width, height} size 
+     * @returns amount of "leftover" space under the grid
+     */
     resize(size) {
         const columnGapWidth = GRID_ROW_GAP * (this.config.letters - 1)
         const rowGapHeight = GRID_ROW_GAP * (this.config.rows - 1);
@@ -304,7 +315,7 @@ class GameGrid extends HTMLElement {
     
         this.grid.style.width = gridWidth + 'px';
         this.grid.style.height = gridHeight + 'px';
-        this.grid.style.marginBottom = (size.height - gridHeight - 10) + 'px';
+        return (size.height - gridHeight - 10);
     }
 
     submit() {
@@ -312,6 +323,12 @@ class GameGrid extends HTMLElement {
             this.current.wiggle();
             return false;
         }
+
+        if (!this.words.includes(this.current.letters)) {
+            this.current.wiggle();
+            return false;
+        }
+
         const upperMatch = this.current.doesMatch(this.upper);
         const lowerMatch = this.current.doesMatch(this.lower);
 
@@ -349,6 +366,53 @@ class GameGrid extends HTMLElement {
 
 customElements.define('game-grid', GameGrid);
 
+class GameTutorial extends HTMLElement {
+    constructor(gridConfig, gridArea) {
+        super();
+
+        this.overlay = document.createElement('div');
+        this.overlay.classList.add('overlay', 'tutorial');
+        this.overlay.style.display = 'block';
+        this.overlay.onclick = () => this.overlay.style.display = 'none';
+        this.appendChild(this.overlay);
+
+        this.textContainer = document.createElement('div');
+        this.textContainer.style.width = gridArea.width + 'px';
+        this.textContainer.style.margin = 'auto';
+        this.overlay.appendChild(this.textContainer);
+
+        const title = document.createElement('div');
+        title.classList.add('tutorial-title');
+        title.innerText = 'How to Play';
+        this.textContainer.appendChild(title);
+
+        this.goal = document.createElement('p');
+        this.goal.innerText = [
+            'The goal of LAMARDLE is to find words which "match" the words',
+            'above or below them. Two words "match" when they share 3 or more',
+            'letters in the same position.'
+        ].join(' ');
+        this.textContainer.appendChild(this.goal);
+
+        const example1 = new GameGrid(
+            {letters: gridConfig.letters, rows: 3},
+            {
+                onLoad: grid => {
+                    example1.upper.setLetters('hello');
+                    example1.lower.setLetters('world');
+                    example1.setLetters('would');
+                }
+            }
+        );
+
+        example1.resize({width: gridArea.width, height: 200});
+
+        this.textContainer.appendChild(example1);
+    }
+}
+
+customElements.define('game-tutorial', GameTutorial);
+
 class LamardleGame extends HTMLElement {
     constructor() {
         super();
@@ -358,8 +422,7 @@ class LamardleGame extends HTMLElement {
         this.appendChild(this.container);
 
         this.winPopup = document.createElement('div');
-        this.winPopup.classList.add('winOverlay');
-        this.winPopup.style.display = 'none';
+        this.winPopup.classList.add('overlay');
         this.container.appendChild(this.winPopup);
 
         this.winMessage = document.createElement('div');
@@ -377,7 +440,12 @@ class LamardleGame extends HTMLElement {
             matches: 3,
         }
 
-        this.grid = new GameGrid(gridConfig, () => this.winGame());
+        this.tutorial = new GameTutorial(gridConfig, this.getGridArea());
+        this.container.appendChild(this.tutorial);
+
+        this.grid = new GameGrid(gridConfig, {
+            onWin: () => this.winGame()
+        });
         this.container.append(this.grid)
 
         this.keyboard = new GameKeyboard(this.grid);
@@ -397,11 +465,16 @@ class LamardleGame extends HTMLElement {
         });
     }
 
-    resizeGrid() {
-        this.grid.resize({
+    getGridArea() {
+        return {
             width: Math.min(MAX_WIDTH, window.innerWidth - GRID_PADDING_WIDTH),
             height: window.innerHeight - KEYBOARD_HEIGHT - HEADER_HEIGHT
-        });
+        };
+    }
+
+    resizeGrid() {
+        const leftover = this.grid.resize(this.getGridArea());
+        this.grid.grid.style.marginBottom = leftover + 'px';
     }
 
     winGame() {
