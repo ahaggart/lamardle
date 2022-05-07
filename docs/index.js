@@ -9,6 +9,7 @@ const KEY_HEIGHT = 58;
 const KEY_MARGIN = 5;
 const GRID_PADDING = 10;
 const HEADER_HEIGHT = 50;
+const INVALID_ANIMATION_LENGTH_MS = 400;
 
 class WordList {
     constructor(numLetters) {
@@ -141,6 +142,11 @@ class GridRow extends HTMLElement {
         }
 
         return true;
+    }
+
+    wiggle() {
+        this.setAttribute('wiggle', '');
+        window.setTimeout(() => this.removeAttribute('wiggle'), INVALID_ANIMATION_LENGTH_MS);
     }
 }
 
@@ -294,12 +300,14 @@ class GameGrid extends HTMLElement {
 
     submit() {
         if (!this.current.isComplete()) {
+            this.current.wiggle();
             return false;
         }
         const upperMatch = this.current.doesMatch(this.upper);
         const lowerMatch = this.current.doesMatch(this.lower);
 
         if (!upperMatch && !lowerMatch) {
+            this.current.wiggle();
             return false;
         }
 

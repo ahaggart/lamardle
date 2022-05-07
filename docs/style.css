@@ -21,7 +21,6 @@ html,body {
     width: 90%;
     margin: 0 auto;
     text-align: center;
-    /* height: 50px; */
     padding-top: calc(50px - 2rem);
     color: var(--tile-text-color);
     font-size: 2rem;
@@ -126,9 +125,19 @@ html,body {
     flex: 1.5;
 }
 
-/* game-grid,game-keyboard {
-    z-index: 0;
-} */
+@keyframes wiggle {
+    0% {left: 5px;}
+    25% {left: -5px;}
+    50% {left: 5px;}
+    75% {left: -5px;}
+    100% {left: 0px;}
+}
+
+.grid-row[wiggle] {
+    position: relative;
+    animation-name: wiggle;
+    animation-duration: 400ms;
+}
 
 .winOverlay {
     z-index: 1;
