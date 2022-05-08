@@ -26,6 +26,27 @@ html,body {
     font-size: 2rem;
     font-family: Copperplate, Copperplate Gothic Light, fantasy;
     border-bottom-style: solid;
+    display: flex;
+}
+
+.spacer-left {
+    flex: 1;
+    display: flex;
+    justify-content: left;
+}
+
+.spacer-left>* {
+    margin-right: 5px;
+}
+
+.spacer-right {
+    flex: 1;
+    display: flex;
+    justify-content: right;
+}
+
+.spacer-right>* {
+    margin-left: 5px;
 }
 
 .container {
@@ -167,6 +188,7 @@ html,body {
     font-size: 2rem;
     padding: 10px;
     border-radius: 4px;
+    text-align: center;
 }
 
 .letter.upper-match {

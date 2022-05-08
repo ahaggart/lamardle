@@ -258,16 +258,16 @@ class GameGrid extends HTMLElement {
         });
     }
 
-    getRandomWord() {
-        return this.words[Math.floor(Math.random() * this.words.length)];
+    getRandomWord(seed) {
+        return this.words[Math.abs(this.getHashCode(seed)) % this.words.length];
     }
 
     createRows() {
         this.upper = new GridRow(this.rowConfig);
-        this.upper.setLetters(this.getRandomWord());
+        this.upper.setLetters(this.getRandomWord(this.config.seed));
 
         this.lower = new GridRow(this.rowConfig);
-        this.lower.setLetters(this.getRandomWord()); 
+        this.lower.setLetters(this.getRandomWord(this.config.seed + 'salt')); 
         this.lower.id = 'goal';
 
         this.current = new GridRow(this.rowConfig);
@@ -362,6 +362,16 @@ class GameGrid extends HTMLElement {
 
         return true;
     }
+
+    getHashCode(str) {
+        var hash = 0;
+        for (var i = 0; i < str.length; i++) {
+            var code = str.charCodeAt(i);
+            hash = ((hash<<5)-hash)+code;
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        return hash;
+    }
 }
 
 customElements.define('game-grid', GameGrid);
@@ -402,9 +412,9 @@ class GameTutorial extends HTMLElement {
         ]));
 
         const example1 = new GameGrid(
-            {letters: gridConfig.letters, rows: 3},
+            { ...gridConfig, rows: 3 },
             {
-                onLoad: grid => {
+                onLoad: () => {
                     example1.upper.setLetters('hello');
                     example1.lower.setLetters('world');
                     example1.setLetters('would');
@@ -428,7 +438,6 @@ class GameTutorial extends HTMLElement {
         ]));
 
         if (!gameData.hasVisited()) {
-            console.log(gameData.hasVisited())
             this.show();
         }
         this.overlay.onclick = () => {
@@ -493,6 +502,10 @@ class GameData {
     }
 
     addStreak() {
+        if (this.data.mostRecent === this.formatDate(this.date)) {
+            return;
+        } 
+
         this.data.streak++;
         this.data.mostRecent = this.formatDate(this.date);
         this.saveData();
@@ -550,11 +563,54 @@ class LamardleGame extends HTMLElement {
         this.winPopup.appendChild(this.winMessage);
 
         this.header = document.createElement('div');
-        this.header.innerText = 'LAMARDLE';
         this.header.classList.add('header');
         this.container.appendChild(this.header);
 
+        this.spacerLeft = document.createElement('div');
+        this.spacerLeft.classList.add('spacer-left');
+        this.header.appendChild(this.spacerLeft);
+
+        this.homeButton = document.createElement('a');
+        this.homeButton.setAttribute('href', './');
+        this.spacerLeft.appendChild(this.homeButton);
+
+        const homeImg = document.createElement('img');
+        homeImg.setAttribute('src', 'home.svg');
+        homeImg.setAttribute('width', '25');
+        homeImg.setAttribute('height', '25');
+        this.homeButton.appendChild(homeImg);
+
+        this.titleText = document.createElement('div');
+        this.titleText.innerText = 'LAMARDLE';
+        this.titleText.classList.add('title-text')
+        this.header.appendChild(this.titleText);
+
+        this.spacerRight = document.createElement('div');
+        this.spacerRight.classList.add('spacer-right');
+        this.header.appendChild(this.spacerRight);
+
+        this.randomize = document.createElement('a');
+        this.randomize.setAttribute('href', './?seed=' + this.randomString());
+        this.spacerRight.appendChild(this.randomize);
+        
+        const diceImg = document.createElement('img');
+        diceImg.setAttribute('src', 'dice-3.svg');
+        diceImg.setAttribute('width', '25');
+        diceImg.setAttribute('height', '25');
+        this.randomize.appendChild(diceImg);
+
+        const helpImg = document.createElement('img');
+        helpImg.setAttribute('src', 'help.svg');
+        helpImg.setAttribute('width', '25');
+        helpImg.setAttribute('height', '25');
+        this.spacerRight.appendChild(helpImg);
+
+        this.urlSeed = new URL(document.location).searchParams.get('seed');
+        const dateSeed = this.gameData.formatDate(this.gameData.date);
+        this.seed = this.urlSeed ?? dateSeed;
+
         const gridConfig = {
+            seed: this.seed,
             rows: 7,
             letters: 5,
             matches: 3,
@@ -566,6 +622,8 @@ class LamardleGame extends HTMLElement {
             this.getGridArea(),
         );
         this.container.appendChild(this.tutorial);
+
+        helpImg.onclick = () => this.tutorial.show();
 
         this.grid = new GameGrid(gridConfig, {
             onWin: () => this.winGame()
@@ -593,7 +651,7 @@ class LamardleGame extends HTMLElement {
     getGridArea() {
         return {
             width: Math.min(MAX_WIDTH, window.innerWidth - GRID_PADDING_WIDTH),
-            height: window.innerHeight - KEYBOARD_HEIGHT - HEADER_HEIGHT
+            height: window.innerHeight - KEYBOARD_HEIGHT - HEADER_HEIGHT,
         };
     }
 
@@ -603,9 +661,23 @@ class LamardleGame extends HTMLElement {
     }
 
     winGame() {
-        this.winMessage.innerText = 'You won in ' + this.grid.numGuesses + ' tries!';
+        const messageLines = [];
+        messageLines.push('You won in ' + this.grid.numGuesses + ' tries!');
         this.winPopup.style.display = 'block';
-        this.gameData.addStreak();
+        
+        if (this.urlSeed === null) {
+            this.gameData.addStreak();
+            messageLines.push('Current Streak: ' + this.gameData.data.streak);
+        }
+        this.winMessage.innerText = messageLines.join('\n');
+    }
+
+    randomString() {
+        const codes = [];
+        for (let i = 0; i < 16; i++) {
+            codes.push(Math.floor(Math.random() * 10));
+        }
+        return codes.join('');
     }
 }
 
