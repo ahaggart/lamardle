@@ -366,14 +366,18 @@ class GameGrid extends HTMLElement {
 
 customElements.define('game-grid', GameGrid);
 
+function paragraph(text) {
+    const elem = document.createElement('p');
+    elem.innerText = text.join(' ');
+    return elem;
+}
+
 class GameTutorial extends HTMLElement {
-    constructor(gridConfig, gridArea) {
+    constructor(gameData, gridConfig, gridArea) {
         super();
 
         this.overlay = document.createElement('div');
         this.overlay.classList.add('overlay', 'tutorial');
-        this.overlay.style.display = 'block';
-        this.overlay.onclick = () => this.overlay.style.display = 'none';
         this.appendChild(this.overlay);
 
         this.textContainer = document.createElement('div');
@@ -386,13 +390,16 @@ class GameTutorial extends HTMLElement {
         title.innerText = 'How to Play';
         this.textContainer.appendChild(title);
 
-        this.goal = document.createElement('p');
-        this.goal.innerText = [
+        this.textContainer.appendChild(paragraph([
             'The goal of LAMARDLE is to find words which "match" the words',
             'above or below them. Two words "match" when they share 3 or more',
             'letters in the same position.'
-        ].join(' ');
-        this.textContainer.appendChild(this.goal);
+        ]));
+
+        this.textContainer.appendChild(paragraph([
+            'When you enter a word that matches the word above or below, it',
+            'will replace that word. If the word matches both words, you win!'
+        ]));
 
         const example1 = new GameGrid(
             {letters: gridConfig.letters, rows: 3},
@@ -408,14 +415,127 @@ class GameTutorial extends HTMLElement {
         example1.resize({width: gridArea.width, height: 200});
 
         this.textContainer.appendChild(example1);
+
+        this.textContainer.appendChild(paragraph([
+            'In the example above, the middle word "would" matches "w", "o",',
+            '"l", and "d" from "world". It also matches "l" from "hello". When',
+            'entered, the lower word "world" is replaced with "would", so the',
+            'next word should match either "hello" or "would".' 
+        ]));
+
+        this.textContainer.appendChild(paragraph([
+            'Tap anywhere to continue.' 
+        ]));
+
+        if (!gameData.hasVisited()) {
+            console.log(gameData.hasVisited())
+            this.show();
+        }
+        this.overlay.onclick = () => {
+            this.hide();
+            gameData.setVisited();
+        };
+    }
+
+    show() {
+        this.overlay.style.display = 'block';
+    }
+
+    hide() {
+        this.overlay.style.display = 'none';
     }
 }
 
 customElements.define('game-tutorial', GameTutorial);
 
+class GameData {
+    schema = {
+        visited: (value) => value === 'true',
+        streak: (value) => parseInt(value),
+        mostRecent: (value) => value,
+    };
+
+    constructor(date) {
+        this.date = date;
+        const cookieData = this.parseCookie();
+
+        this.data = {
+            visited: cookieData.visited ?? false,
+            streak: cookieData.streak ?? 0,
+            mostRecent: cookieData.mostRecent ?? '',
+        }
+
+        this.checkStreak();
+    }
+
+    setVisited() {
+        this.data.visited = true;
+        this.saveData();
+    }
+
+    hasVisited() {
+        return this.data.visited;
+    }
+
+    checkStreak() {
+        if (this.data.mostRecent === this.formatDate(this.date)) {
+            return;
+        } 
+
+        const dayBefore = new Date(this.date);
+        dayBefore.setDate(this.date.getDate() - 1);
+
+        console.log(this.formatDate(dayBefore))
+        
+        if (this.data.mostRecent !== this.formatDate(dayBefore)) {
+            this.data.streak = 0;
+        }
+    }
+
+    addStreak() {
+        this.data.streak++;
+        this.data.mostRecent = this.formatDate(this.date);
+        this.saveData();
+    }
+
+    saveData() {
+        for (let prop in this.data) {
+            document.cookie = prop + '=' + this.data[prop];
+        }
+    }
+
+    parseCookie() {
+        const data = {}
+        if (document.cookie) {
+            decodeURI(document.cookie)
+                .split(';')
+                .map(entry => entry.split("="))
+                .forEach(keyValue => {
+                    const key = keyValue[0].trim();
+                    const value = keyValue[1];
+                    if (this.schema.hasOwnProperty(key)) {
+                        data[key] = this.schema[key](value);
+                    }
+                });
+        }
+        return data;
+    }
+
+    formatDate(date) {
+        return [
+            date.getFullYear().toString(),
+            date.getMonth().toString().padStart(2, '0'),
+            date.getDay().toString().padStart(2, '0'),
+        ].join('');
+    }
+
+}
+
 class LamardleGame extends HTMLElement {
     constructor() {
         super();
+
+        this.gameData = new GameData(new Date());
 
         this.container = document.createElement('div');
         this.container.classList.add('container');
@@ -440,7 +560,11 @@ class LamardleGame extends HTMLElement {
             matches: 3,
         }
 
-        this.tutorial = new GameTutorial(gridConfig, this.getGridArea());
+        this.tutorial = new GameTutorial(
+            this.gameData, 
+            gridConfig, 
+            this.getGridArea(),
+        );
         this.container.appendChild(this.tutorial);
 
         this.grid = new GameGrid(gridConfig, {
@@ -458,7 +582,8 @@ class LamardleGame extends HTMLElement {
             if (e.key === 'Backspace') {
                 this.keyboard.backspace();
             } else if (e.key === 'Enter') {
-                this.keyboard.submit();
+                // this.keyboard.submit();
+                this.winGame();
             } else if (e.key.match(/^[a-z]$/)) {
                 this.keyboard.appendLetter(e.key);
             }
@@ -480,6 +605,7 @@ class LamardleGame extends HTMLElement {
     winGame() {
         this.winMessage.innerText = 'You won in ' + this.grid.numGuesses + ' tries!';
         this.winPopup.style.display = 'block';
+        this.gameData.addStreak();
     }
 }
 
