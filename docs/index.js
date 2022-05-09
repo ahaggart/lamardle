@@ -630,8 +630,7 @@ class LamardleGame extends HTMLElement {
             if (e.key === 'Backspace') {
                 this.keyboard.backspace();
             } else if (e.key === 'Enter') {
-                // this.keyboard.submit();
-                this.winGame();
+                this.keyboard.submit();
             } else if (e.key.match(/^[a-z]$/)) {
                 this.keyboard.appendLetter(e.key);
             }
