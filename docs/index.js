@@ -408,25 +408,37 @@ class GameTutorial extends HTMLElement {
             'letters in the same position.'
         ]));
 
-        this.textContainer.appendChild(paragraph([
-            'When you enter a word that matches the word above or below, it',
-            'will replace that word. If the word matches both words, you win!'
-        ]));
-
         const example1 = new GameGrid(
             { ...gridConfig, rows: 3 },
             {
                 onLoad: () => {
                     example1.upper.setLetters('hello');
                     example1.lower.setLetters('world');
-                    example1.setLetters('would');
                 }
             }
         );
 
         example1.resize({width: gridArea.width, height: 200});
-
         this.textContainer.appendChild(example1);
+
+        this.textContainer.appendChild(paragraph([
+            'When you enter a word that matches the word above or below, it',
+            'will replace that word. If the word matches both words, you win!'
+        ]));
+
+        const example2 = new GameGrid(
+            { ...gridConfig, rows: 3 },
+            {
+                onLoad: () => {
+                    example2.upper.setLetters('hello');
+                    example2.lower.setLetters('world');
+                    example2.setLetters('would');
+                }
+            }
+        );
+
+        example2.resize({width: gridArea.width, height: 200});
+        this.textContainer.appendChild(example2);
 
         this.textContainer.appendChild(paragraph([
             'In the example above, the middle word "would" matches "w", "o",',
@@ -434,6 +446,22 @@ class GameTutorial extends HTMLElement {
             'entered, the lower word "world" is replaced with "would", so the',
             'next word should match either "hello" or "would".' 
         ]));
+
+        const example3 = new GameGrid(
+            { ...gridConfig, rows: 3 },
+            {
+                onLoad: () => {
+                    example3.upper.setLetters('hello');
+                    example3.lower.setLetters('world');
+                    example3.setLetters('would');
+                    example3.submit();
+                }
+            }
+        );
+
+        example3.resize({width: gridArea.width, height: 200});
+
+        this.textContainer.appendChild(example3);
 
         this.textContainer.appendChild(paragraph([
             'Tap anywhere to continue. Happy Mother\'s Day!' 
@@ -540,8 +568,8 @@ class GameData {
     formatDate(date) {
         return [
             date.getFullYear().toString(),
-            date.getMonth().toString().padStart(2, '0'),
-            date.getDay().toString().padStart(2, '0'),
+            (date.getMonth() + 1).toString().padStart(2, '0'),
+            date.getDate().toString().padStart(2, '0'),
         ].join('');
     }
 
@@ -560,6 +588,7 @@ class LamardleGame extends HTMLElement {
         this.winPopup = document.createElement('div');
         this.winPopup.classList.add('overlay');
         this.container.appendChild(this.winPopup);
+        this.winPopup.onclick = () => this.winPopup.style.display = 'none';
 
         this.winMessage = document.createElement('div');
         this.winMessage.classList.add('winMessage');
@@ -573,11 +602,17 @@ class LamardleGame extends HTMLElement {
         this.spacerLeft.classList.add('spacer-left');
         this.header.appendChild(this.spacerLeft);
 
-        this.homeButton = document.createElement('a');
-        this.homeButton.setAttribute('href', './');
-        this.spacerLeft.appendChild(this.homeButton);
+        this.spacerLeft.appendChild(this.createHeaderLink(
+            'home.svg', 
+            './',
+            { altText: 'go to daily puzzle' }
+        ));
 
-        this.homeButton.appendChild(this.createHeaderIcon('home.svg'));
+        this.spacerLeft.appendChild(this.createHeaderLink(
+            'dice-3.svg',
+            './?seed=' + this.randomString(),
+            { altText: 'go to random puzzle' }
+        ));
 
         this.titleText = document.createElement('div');
         this.titleText.innerText = 'LAMARDLE';
@@ -588,13 +623,15 @@ class LamardleGame extends HTMLElement {
         this.spacerRight.classList.add('spacer-right');
         this.header.appendChild(this.spacerRight);
 
-        this.randomize = document.createElement('a');
-        this.randomize.setAttribute('href', './?seed=' + this.randomString());
-        this.spacerRight.appendChild(this.randomize);
+        this.spacerRight.appendChild(this.createHeaderLink(
+            'source.svg',
+            'https://github.com/ahaggart/lamardle',
+            { newTab: true, altText: 'go to source code' }
+        ));
         
-        this.randomize.appendChild(this.createHeaderIcon('dice-3.svg'));
-
-        const helpButton = this.createHeaderIcon('help.svg')
+        const helpButton = this.createHeaderIcon('help.svg', {
+            altText: 'show tutorial'
+        });
         this.spacerRight.appendChild(helpButton);
 
         this.urlSeed = new URL(document.location).searchParams.get('seed');
@@ -638,12 +675,26 @@ class LamardleGame extends HTMLElement {
             }
         });
     }
+
+    createHeaderLink(iconPath, linkPath, options = {}) {
+        const link = document.createElement('a');
+        link.setAttribute('href', linkPath);
+        if (options.newTab) link.setAttribute('target', '_blank');
+        link.appendChild(this.createHeaderIcon(iconPath, options));
+        return link;
+    }
     
-    createHeaderIcon(path) {
+    createHeaderIcon(path, options = {}) {
         const icon = document.createElement('img');
         icon.setAttribute('src', path);
         icon.setAttribute('width', HEADER_ICON_SIZE);
         icon.setAttribute('height', HEADER_ICON_SIZE);
+        if (options.altText) {
+            icon.setAttribute('alt', options.altText);
+        }
+        if (options.title || options.altText) {
+            icon.setAttribute('title', options.title ?? options.altText);
+        }
         return icon;
     }
 
