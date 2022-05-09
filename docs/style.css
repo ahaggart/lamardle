@@ -184,6 +184,7 @@ html,body {
 .winMessage {
     margin: 10% auto;
     width: fit-content;
+    width: -moz-fit-content;
     background-color: lavender;
     font-size: 2rem;
     padding: 10px;
