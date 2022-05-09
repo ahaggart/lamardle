@@ -12,6 +12,7 @@ const HEADER_HEIGHT = 50;
 const INVALID_ANIMATION_LENGTH_MS = 400;
 const KEYBOARD_HEIGHT = KEY_HEIGHT * 3 + KEY_MARGIN * 2;
 const GRID_PADDING_WIDTH = GRID_PADDING * 2;
+const HEADER_ICON_SIZE = 25;
 
 class WordList {
     constructor(numLetters) {
@@ -574,11 +575,7 @@ class LamardleGame extends HTMLElement {
         this.homeButton.setAttribute('href', './');
         this.spacerLeft.appendChild(this.homeButton);
 
-        const homeImg = document.createElement('img');
-        homeImg.setAttribute('src', 'home.svg');
-        homeImg.setAttribute('width', '25');
-        homeImg.setAttribute('height', '25');
-        this.homeButton.appendChild(homeImg);
+        this.homeButton.appendChild(this.createHeaderIcon('home.svg'));
 
         this.titleText = document.createElement('div');
         this.titleText.innerText = 'LAMARDLE';
@@ -593,17 +590,10 @@ class LamardleGame extends HTMLElement {
         this.randomize.setAttribute('href', './?seed=' + this.randomString());
         this.spacerRight.appendChild(this.randomize);
         
-        const diceImg = document.createElement('img');
-        diceImg.setAttribute('src', 'dice-3.svg');
-        diceImg.setAttribute('width', '25');
-        diceImg.setAttribute('height', '25');
-        this.randomize.appendChild(diceImg);
+        this.randomize.appendChild(this.createHeaderIcon('dice-3.svg'));
 
-        const helpImg = document.createElement('img');
-        helpImg.setAttribute('src', 'help.svg');
-        helpImg.setAttribute('width', '25');
-        helpImg.setAttribute('height', '25');
-        this.spacerRight.appendChild(helpImg);
+        const helpButton = this.createHeaderIcon('help.svg')
+        this.spacerRight.appendChild(helpButton);
 
         this.urlSeed = new URL(document.location).searchParams.get('seed');
         const dateSeed = this.gameData.formatDate(this.gameData.date);
@@ -623,7 +613,7 @@ class LamardleGame extends HTMLElement {
         );
         this.container.appendChild(this.tutorial);
 
-        helpImg.onclick = () => this.tutorial.show();
+        helpButton.onclick = () => this.tutorial.show();
 
         this.grid = new GameGrid(gridConfig, {
             onWin: () => this.winGame()
@@ -646,6 +636,14 @@ class LamardleGame extends HTMLElement {
                 this.keyboard.appendLetter(e.key);
             }
         });
+    }
+    
+    createHeaderIcon(path) {
+        const icon = document.createElement('img');
+        icon.setAttribute('src', path);
+        icon.setAttribute('width', HEADER_ICON_SIZE);
+        icon.setAttribute('height', HEADER_ICON_SIZE);
+        return icon;
     }
 
     getGridArea() {
