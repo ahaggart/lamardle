@@ -13,6 +13,7 @@ const INVALID_ANIMATION_LENGTH_MS = 400;
 const KEYBOARD_HEIGHT = KEY_HEIGHT * 3 + KEY_MARGIN * 2;
 const GRID_PADDING_WIDTH = GRID_PADDING * 2;
 const HEADER_ICON_SIZE = 25;
+const COOKIE_EXPIRATION_DAYS = 3;
 
 class WordList {
     constructor(numLetters) {
@@ -435,7 +436,7 @@ class GameTutorial extends HTMLElement {
         ]));
 
         this.textContainer.appendChild(paragraph([
-            'Tap anywhere to continue.' 
+            'Tap anywhere to continue. Happy Mother\'s Day!' 
         ]));
 
         if (!gameData.hasVisited()) {
@@ -494,8 +495,6 @@ class GameData {
 
         const dayBefore = new Date(this.date);
         dayBefore.setDate(this.date.getDate() - 1);
-
-        console.log(this.formatDate(dayBefore))
         
         if (this.data.mostRecent !== this.formatDate(dayBefore)) {
             this.data.streak = 0;
@@ -513,8 +512,11 @@ class GameData {
     }
 
     saveData() {
+        const cookieExpirationDate = new Date();
+        cookieExpirationDate.setDate(new Date().getDate() + COOKIE_EXPIRATION_DAYS);
+        const expirationString = 'expires=' + cookieExpirationDate.toUTCString();
         for (let prop in this.data) {
-            document.cookie = prop + '=' + this.data[prop];
+            document.cookie = prop + '=' + this.data[prop] + ';' + expirationString;
         }
     }
 
