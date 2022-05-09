@@ -623,11 +623,11 @@ class LamardleGame extends HTMLElement {
         this.spacerRight.classList.add('spacer-right');
         this.header.appendChild(this.spacerRight);
 
-        this.spacerRight.appendChild(this.createHeaderLink(
-            'source.svg',
-            'https://github.com/ahaggart/lamardle',
-            { newTab: true, altText: 'go to source code' }
-        ));
+        // this.spacerRight.appendChild(this.createHeaderLink(
+        //     'source.svg',
+        //     'https://github.com/ahaggart/lamardle',
+        //     { newTab: true, altText: 'go to source code' }
+        // ));
         
         const helpButton = this.createHeaderIcon('help.svg', {
             altText: 'show tutorial'
