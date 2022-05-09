@@ -588,7 +588,7 @@ class LamardleGame extends HTMLElement {
         this.winPopup = document.createElement('div');
         this.winPopup.classList.add('overlay');
         this.container.appendChild(this.winPopup);
-        this.winPopup.onclick = () => this.winPopup.style.display = 'none';
+        this.winPopup.onclick = () => window.location.reload();
 
         this.winMessage = document.createElement('div');
         this.winMessage.classList.add('winMessage');
