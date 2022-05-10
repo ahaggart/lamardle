@@ -14,6 +14,10 @@ const KEYBOARD_HEIGHT = KEY_HEIGHT * 3 + KEY_MARGIN * 2;
 const GRID_PADDING_WIDTH = GRID_PADDING * 2;
 const HEADER_ICON_SIZE = 25;
 const COOKIE_EXPIRATION_DAYS = 3;
+const UP_ARROW = '\uD83D\uDD3C';
+const DOWN_ARROW = '\uD83D\uDD3D';
+const NO_ARROW = '\u23FA';
+const SOLUTION_MARKER = '\u002A\uFE0F\u20E3';
 
 class WordList {
     constructor(numLetters) {
@@ -243,6 +247,8 @@ class GameGrid extends HTMLElement {
         };
 
         this.numGuesses = 0;
+        this.upperMatches = [];
+        this.lowerMatches = [];
 
         this.id = 'game-grid';
         this.grid = document.createElement('div');
@@ -342,7 +348,13 @@ class GameGrid extends HTMLElement {
         this.numGuesses++;
 
         if (upperMatch && lowerMatch) {
-            this.winCallback();
+            this.upperMatches.push(this.upper.letters);
+            this.lowerMatches.push(this.lower.letters);
+            this.winCallback({
+                upper: this.upperMatches,
+                solution: this.current.letters,
+                lower: this.lowerMatches,
+            });
             return true;
         }
         
@@ -351,11 +363,13 @@ class GameGrid extends HTMLElement {
         this.current.setHighlight(false);
 
         if (upperMatch) {
+            this.upperMatches.push(this.upper.letters);
             this.grid.children[0].remove();
             this.upper = this.current;
             this.current = newRow;
             this.grid.insertBefore(this.current, this.lower);
         } else {
+            this.lowerMatches.push(this.lower.letters);
             this.grid.children[this.grid.children.length - 1].remove();
             this.lower = this.current;
             this.current = newRow;
@@ -594,6 +608,14 @@ class LamardleGame extends HTMLElement {
         this.winMessage.classList.add('winMessage');
         this.winPopup.appendChild(this.winMessage);
 
+        this.winMessageText = document.createElement('div');
+        this.winMessage.appendChild(this.winMessageText);
+
+        this.winMessageShare = document.createElement('div');
+        this.winMessageShare.classList.add('share-result');
+        this.winMessageShare.innerText = 'Share!';
+        this.winMessage.appendChild(this.winMessageShare);
+
         this.header = document.createElement('div');
         this.header.classList.add('header');
         this.container.appendChild(this.header);
@@ -655,7 +677,7 @@ class LamardleGame extends HTMLElement {
         helpButton.onclick = () => this.tutorial.show();
 
         this.grid = new GameGrid(gridConfig, {
-            onWin: () => this.winGame()
+            onWin: solution => this.winGame(solution)
         });
         this.container.append(this.grid)
 
@@ -710,7 +732,60 @@ class LamardleGame extends HTMLElement {
         this.grid.grid.style.marginBottom = leftover + 'px';
     }
 
-    winGame() {
+    computeMatching(solution, matches) {
+        const matchingLetters = [];
+        var current = solution;
+
+        // iterate the array in reverse
+        for (let i = 0; i < matches.length; i++) {
+            const next = matches[matches.length - i - 1];
+            const currentMatch = current
+                .split('')
+                .map((letter, pos) => [letter, next.charAt(pos)])
+                .map(([a, b]) => a === b)
+            matchingLetters.push(currentMatch);
+            current = next;
+        }
+        // reverse the output
+        matchingLetters.reverse();
+
+        return matchingLetters;
+    }
+
+    formatMatching(sequence, matchChar, nonMatchChar) {
+        return sequence
+            .map(rowMatch => 
+                rowMatch
+                    .map(letterMatch => letterMatch ? matchChar : nonMatchChar)
+                    .join('')
+            )
+    }
+
+    createShareMessage(solution) {
+        const upperSequence = this.formatMatching(
+            this.computeMatching(solution.solution, solution.upper),
+            DOWN_ARROW, NO_ARROW
+        );
+
+        const lowerSequence = this.formatMatching(
+            this.computeMatching(solution.solution, solution.lower),
+            UP_ARROW, NO_ARROW
+        );
+
+        lowerSequence.reverse();
+
+        return Array.prototype.concat(
+            [
+                'lamardle ' + this.gameData.date.toLocaleDateString(),
+                this.grid.numGuesses + ' tries',
+            ],
+            upperSequence,
+            [solution.solution.split('').map(() => SOLUTION_MARKER).join('')],
+            lowerSequence,
+        ).join('\n');
+    }
+
+    winGame(solution) {
         const messageLines = [];
         messageLines.push('You won in ' + this.grid.numGuesses + ' tries!');
         this.winPopup.style.display = 'block';
@@ -719,7 +794,28 @@ class LamardleGame extends HTMLElement {
             this.gameData.addStreak();
             messageLines.push('Current Streak: ' + this.gameData.data.streak);
         }
-        this.winMessage.innerText = messageLines.join('\n');
+        this.winMessageText.innerText = messageLines.join('\n');
+        this.winMessageShare.onclick = e => {
+            e.stopPropagation();
+            const shareMessage = this.createShareMessage(solution);
+            const failMessage = 'Failed to Share :(';
+            
+            const oldText = this.winMessageShare.innerText;
+            if (navigator.share) {
+                navigator.share({
+                    title: document.title,
+                    url: 'https://lamardle.com',
+                    text: shareMessage,
+                })
+                .catch(() => this.winMessageShare.innerText = failMessage);
+            } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(shareMessage);
+                this.winMessageShare.innerText = 'Copied to clipboard!';
+                window.setTimeout(() => this.winMessageShare.innerText = oldText, 3000);
+            } else {
+                this.winMessageShare.innerText = failMessage;
+            }
+        };
     }
 
     randomString() {

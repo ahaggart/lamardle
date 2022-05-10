@@ -9,6 +9,7 @@
     --key-text-color: white;
     --main-background-color: #330b36;
     --tile-text-color: lightgray;
+    --share-button-color: #28ba25;
 
     --header-button-margin: 10px;
 }
@@ -195,6 +196,14 @@ html,body {
     padding: 10px;
     border-radius: 4px;
     text-align: center;
+}
+
+.share-result {
+    background-color: var(--share-button-color);
+    border-radius: 4px;
+    padding: 10px;
+    font-size: 1rem;
+    cursor: pointer;
 }
 
 .letter.upper-match {
