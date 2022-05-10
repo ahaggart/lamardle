@@ -761,7 +761,7 @@ class LamardleGame extends HTMLElement {
             )
     }
 
-    createShareMessage(solution) {
+    createShareMessage(solution, title) {
         const upperSequence = this.formatMatching(
             this.computeMatching(solution.solution, solution.upper),
             DOWN_ARROW, NO_ARROW
@@ -776,7 +776,8 @@ class LamardleGame extends HTMLElement {
 
         return Array.prototype.concat(
             [
-                'lamardle ' + this.gameData.date.toLocaleDateString(),
+                'lamardle',
+                title,
                 this.grid.numGuesses + ' tries',
             ],
             upperSequence,
@@ -790,14 +791,17 @@ class LamardleGame extends HTMLElement {
         messageLines.push('You won in ' + this.grid.numGuesses + ' tries!');
         this.winPopup.style.display = 'block';
         
-        if (this.urlSeed === null) {
+        if (this.seed === this.gameData.formatDate(this.gameData.date)) {
             this.gameData.addStreak();
             messageLines.push('Current Streak: ' + this.gameData.data.streak);
         }
         this.winMessageText.innerText = messageLines.join('\n');
         this.winMessageShare.onclick = e => {
             e.stopPropagation();
-            const shareMessage = this.createShareMessage(solution);
+            const shareMessage = this.createShareMessage(
+                solution,
+                document.location.origin + '?seed=' + this.seed,
+            );
             const failMessage = 'Failed to Share :(';
             
             const oldText = this.winMessageShare.innerText;
