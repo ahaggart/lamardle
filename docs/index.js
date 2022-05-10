@@ -804,7 +804,6 @@ class LamardleGame extends HTMLElement {
             if (navigator.share) {
                 navigator.share({
                     title: document.title,
-                    url: 'https://lamardle.com',
                     text: shareMessage,
                 })
                 .catch(() => this.winMessageShare.innerText = failMessage);
