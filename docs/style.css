@@ -176,7 +176,7 @@ html,body {
     overflow: scroll;
 }
 
-.overlay.hidden {
+.hidden {
     display: none;
 }
 

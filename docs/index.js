@@ -171,12 +171,12 @@ class GameKeyboard extends HTMLElement {
 
         this.enabled = true;
 
-        const keyboardContainer = document.createElement('div');
-        keyboardContainer.style.margin = "0 5px";
-        keyboardContainer.appendChild(this.createRow('qwertyuiop'));
-        keyboardContainer.appendChild(this.createRow(' asdfghjkl '));
-        keyboardContainer.appendChild(this.createRow('+zxcvbnm-'));
-        this.appendChild(keyboardContainer);
+        this.container = document.createElement('div');
+        this.container.style.margin = "0 5px";
+        this.container.appendChild(this.createRow('qwertyuiop'));
+        this.container.appendChild(this.createRow(' asdfghjkl '));
+        this.container.appendChild(this.createRow('+zxcvbnm-'));
+        this.appendChild(this.container);
     }
 
     backspace() {
@@ -239,6 +239,14 @@ class GameKeyboard extends HTMLElement {
 
     enable() {
         this.enabled = true;
+    }
+
+    show() {
+        this.container.classList.remove('hidden');
+    }
+
+    hide() {
+        this.container.classList.add('hidden');
     }
 }
 
@@ -615,6 +623,7 @@ class LamardleGame extends HTMLElement {
         this.winPopup.onclick = () => {
             this.winPopup.classList.add('hidden');
             this.keyboard.disable();
+            // this.keyboard.hide();
         }
 
         this.winMessage = document.createElement('div');
@@ -639,13 +648,13 @@ class LamardleGame extends HTMLElement {
 
         this.spacerLeft.appendChild(this.createHeaderLink(
             'home.svg', 
-            './',
+            this.getDailyPuzzleLink(),
             { altText: 'go to daily puzzle' }
         ));
 
         this.spacerLeft.appendChild(this.createHeaderLink(
             'dice-3.svg',
-            './?seed=' + this.randomString(),
+            this.getRandomPuzzleLink(),
             { altText: 'go to random puzzle' }
         ));
 
@@ -832,6 +841,14 @@ class LamardleGame extends HTMLElement {
                 this.winMessageShare.innerText = failMessage;
             }
         };
+    }
+
+    getDailyPuzzleLink() {
+        return './';
+    }
+
+    getRandomPuzzleLink() {
+        return './?seed=' + this.randomString()
     }
 
     randomString() {
