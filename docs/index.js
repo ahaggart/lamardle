@@ -169,6 +169,8 @@ class GameKeyboard extends HTMLElement {
 
         this.letters = '';
 
+        this.enabled = true;
+
         const keyboardContainer = document.createElement('div');
         keyboardContainer.style.margin = "0 5px";
         keyboardContainer.appendChild(this.createRow('qwertyuiop'));
@@ -178,7 +180,7 @@ class GameKeyboard extends HTMLElement {
     }
 
     backspace() {
-        if (this.letters.length == 0) {
+        if (!this.enabled || this.letters.length == 0) {
             return;
         }
         this.letters = this.letters.substring(0, this.letters.length - 1);
@@ -186,7 +188,7 @@ class GameKeyboard extends HTMLElement {
     }
 
     appendLetter(letter) {
-        if (this.letters.length == 5) {
+        if (!this.enabled || this.letters.length == 5) {
             return;
         }
         this.letters += letter;
@@ -194,7 +196,7 @@ class GameKeyboard extends HTMLElement {
     }
 
     submit() {
-        if (this.grid.submit()) {
+        if (this.enabled && this.grid.submit()) {
             this.letters = '';
         }
     }
@@ -229,6 +231,14 @@ class GameKeyboard extends HTMLElement {
         }
 
         return row;
+    }
+
+    disable() {
+        this.enabled = false;
+    }
+
+    enable() {
+        this.enabled = true;
     }
 }
 
@@ -403,7 +413,7 @@ class GameTutorial extends HTMLElement {
         super();
 
         this.overlay = document.createElement('div');
-        this.overlay.classList.add('overlay', 'tutorial');
+        this.overlay.classList.add('overlay', 'tutorial', 'hidden');
         this.appendChild(this.overlay);
 
         this.textContainer = document.createElement('div');
@@ -491,11 +501,11 @@ class GameTutorial extends HTMLElement {
     }
 
     show() {
-        this.overlay.style.display = 'block';
+        this.overlay.classList.remove('hidden');
     }
 
     hide() {
-        this.overlay.style.display = 'none';
+        this.overlay.classList.add('hidden');
     }
 }
 
@@ -600,9 +610,12 @@ class LamardleGame extends HTMLElement {
         this.appendChild(this.container);
 
         this.winPopup = document.createElement('div');
-        this.winPopup.classList.add('overlay');
+        this.winPopup.classList.add('overlay', 'hidden');
         this.container.appendChild(this.winPopup);
-        this.winPopup.onclick = () => window.location.reload();
+        this.winPopup.onclick = () => {
+            this.winPopup.classList.add('hidden');
+            this.keyboard.disable();
+        }
 
         this.winMessage = document.createElement('div');
         this.winMessage.classList.add('winMessage');
@@ -645,11 +658,11 @@ class LamardleGame extends HTMLElement {
         this.spacerRight.classList.add('spacer-right');
         this.header.appendChild(this.spacerRight);
 
-        // this.spacerRight.appendChild(this.createHeaderLink(
-        //     'source.svg',
-        //     'https://github.com/ahaggart/lamardle',
-        //     { newTab: true, altText: 'go to source code' }
-        // ));
+        this.spacerRight.appendChild(this.createHeaderLink(
+            'source.svg',
+            'https://github.com/ahaggart/lamardle',
+            { newTab: true, altText: 'go to source code' }
+        ));
         
         const helpButton = this.createHeaderIcon('help.svg', {
             altText: 'show tutorial'
@@ -789,7 +802,7 @@ class LamardleGame extends HTMLElement {
     winGame(solution) {
         const messageLines = [];
         messageLines.push('You won in ' + this.grid.numGuesses + ' tries!');
-        this.winPopup.style.display = 'block';
+        this.winPopup.classList.remove('hidden');
         
         if (this.seed === this.gameData.formatDate(this.gameData.date)) {
             this.gameData.addStreak();

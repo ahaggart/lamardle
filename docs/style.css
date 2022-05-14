@@ -172,8 +172,12 @@ html,body {
     position: absolute;
     top: 0;
     left: 0;
-    display: none;
+    display: block;
     overflow: scroll;
+}
+
+.overlay.hidden {
+    display: none;
 }
 
 .tutorial {
