@@ -290,10 +290,12 @@ class GameGrid extends HTMLElement {
 
     createRows() {
         this.upper = new GridRow(this.rowConfig);
-        this.upper.setLetters(this.getRandomWord(this.config.seed));
+        this.upperStart = this.getRandomWord(this.config.seed)
+        this.upper.setLetters(this.upperStart);
 
         this.lower = new GridRow(this.rowConfig);
-        this.lower.setLetters(this.getRandomWord(this.config.seed + 'salt')); 
+        this.lowerStart = this.getRandomWord(this.config.seed + 'salt')
+        this.lower.setLetters(this.lowerStart); 
         this.lower.id = 'goal';
 
         this.current = new GridRow(this.rowConfig);
@@ -519,6 +521,68 @@ class GameTutorial extends HTMLElement {
 
 customElements.define('game-tutorial', GameTutorial);
 
+class GameSolver {
+    constructor() {
+    }
+
+    solve(start, end){
+        const paths = new Map();
+        paths.set(start, null);
+        var visiting = [start];
+        var toVisit = [];
+        while (visiting.length > 0) {
+            const current = visiting.pop();
+            var done = false;
+            this.graph[current].forEach(word => {
+                if (!paths.has(word)) {
+                    paths.set(word, current);
+                    toVisit.push(word);
+                    if (word === end) done = true;
+                }
+            });
+
+            if (done) {
+                break;
+            }
+
+            if (visiting.length === 0 && toVisit.length !== 0) {
+                visiting = toVisit;
+                toVisit = [];
+            }
+        }
+
+        const path = [end];
+        var current = end;
+        if (paths.has(end)) {
+            while(current !== start) {
+                current = paths.get(current);
+                path.push(current);
+            }
+            return path;
+        }
+
+        return [];
+    }
+
+    loadGraph() {
+        const request = new XMLHttpRequest();
+        const promise = new Promise((resolve, reject) => {
+            request.onreadystatechange = e => {
+                if (request.readyState === XMLHttpRequest.DONE) {
+                    if (request.status === 200) {
+                        this.graph = JSON.parse(request.responseText);
+                        resolve();
+                    }
+                }
+            };
+            request.open('GET', 'graph.json');
+            request.send();
+        });
+
+        return promise;
+    }
+}
+
 class GameData {
     schema = {
         visited: (value) => value === 'true',
@@ -699,12 +763,14 @@ class LamardleGame extends HTMLElement {
         helpButton.onclick = () => this.tutorial.show();
 
         this.grid = new GameGrid(gridConfig, {
-            onWin: solution => this.winGame(solution)
+            onWin: solution => this.winGame(solution),
         });
-        this.container.append(this.grid)
+        this.container.append(this.grid);
 
         this.keyboard = new GameKeyboard(this.grid);
         this.container.append(this.keyboard);
+
+        this.solver = new GameSolver();
 
         this.resizeGrid();
         window.addEventListener('resize', () => this.resizeGrid());
@@ -808,15 +874,29 @@ class LamardleGame extends HTMLElement {
         ).join('\n');
     }
 
-    winGame(solution) {
+    computePar() {
+        const minSolution = this.solver.solve(
+            this.grid.upperStart, 
+            this.grid.lowerStart,
+        );
+        return Math.max(1, minSolution.length - 2);
+    }
+
+    async winGame(solution) {
         const messageLines = [];
         messageLines.push('You won in ' + this.grid.numGuesses + ' tries!');
-        this.winPopup.classList.remove('hidden');
+        
+        await this.solver.loadGraph();
+
+        messageLines.push('Par: ' + this.computePar());
         
         if (this.seed === this.gameData.formatDate(this.gameData.date)) {
             this.gameData.addStreak();
             messageLines.push('Current Streak: ' + this.gameData.data.streak);
         }
+
+        this.winPopup.classList.remove('hidden');
+
         this.winMessageText.innerText = messageLines.join('\n');
         this.winMessageShare.onclick = e => {
             e.stopPropagation();
