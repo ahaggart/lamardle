@@ -15,22 +15,22 @@ type HeaderLinkOptions = HeaderIconOptions & {
 }
 
 export class LamardleGame extends HTMLElement {
-    gameData: GameData;
-    container: HTMLDivElement;
-    winPopup: HTMLDivElement;
-    keyboard: any;
-    winMessage: HTMLDivElement;
-    winMessageText: HTMLDivElement;
-    winMessageShare: HTMLDivElement;
-    header: HTMLDivElement;
-    spacerLeft: HTMLDivElement;
-    titleText: HTMLDivElement;
-    spacerRight: HTMLDivElement;
-    urlSeed: string;
-    seed: any;
-    tutorial: GameTutorial;
-    grid: GameGrid;
-    solver: GameSolver;
+    private gameData: GameData;
+    private container: HTMLDivElement;
+    private winPopup: HTMLDivElement;
+    private keyboard: any;
+    private winMessage: HTMLDivElement;
+    private winMessageText: HTMLDivElement;
+    private winMessageShare: HTMLDivElement;
+    private header: HTMLDivElement;
+    private spacerLeft: HTMLDivElement;
+    private titleText: HTMLDivElement;
+    private spacerRight: HTMLDivElement;
+    private urlSeed: string;
+    private seed: any;
+    private tutorial: GameTutorial;
+    private grid: GameGrid;
+    private solver: GameSolver;
 
     constructor() {
         super();

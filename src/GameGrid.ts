@@ -33,7 +33,7 @@ export class GameGrid extends HTMLElement {
     private upperMatches: string[];
     private lowerMatches: string[];
     private grid: HTMLDivElement;
-    private words: string;
+    private words: string[];
     private upper: GridRow;
     private upperStart: string;
     private lower: GridRow;
@@ -63,7 +63,7 @@ export class GameGrid extends HTMLElement {
         this.grid.style.setProperty('--num-rows', this.config.rows.toString());
         this.appendChild(this.grid);
 
-        WORD_LIST.addListener((words: string) => {
+        WORD_LIST.addListener((words: string[]) => {
             this.words = words;
             this.createRows();
             if (callbacks.onLoad) {
