@@ -1,13 +1,21 @@
-import { GameGrid } from "./GameGrid";
+import { GameData } from "./GameData";
+import { GameGrid, GameGridConfig, GameGridArea } from './GameGrid';
 
-function paragraph(text) {
+function paragraph(text: string[]) {
     const elem = document.createElement('p');
     elem.innerText = text.join(' ');
     return elem;
 }
 
 export class GameTutorial extends HTMLElement {
-    constructor(gameData, gridConfig, gridArea) {
+    overlay: HTMLDivElement;
+    private textContainer: HTMLDivElement;
+    
+    constructor(
+        gameData: GameData, 
+        gridConfig: GameGridConfig, 
+        gridArea: GameGridArea
+    ) {
         super();
 
         this.overlay = document.createElement('div');
@@ -34,8 +42,8 @@ export class GameTutorial extends HTMLElement {
             { ...gridConfig, rows: 3 },
             {
                 onLoad: () => {
-                    example1.upper.setLetters('hello');
-                    example1.lower.setLetters('world');
+                    example1.getUpper().setLetters('hello');
+                    example1.getLower().setLetters('world');
                 }
             }
         );
@@ -52,8 +60,8 @@ export class GameTutorial extends HTMLElement {
             { ...gridConfig, rows: 3 },
             {
                 onLoad: () => {
-                    example2.upper.setLetters('hello');
-                    example2.lower.setLetters('world');
+                    example2.getUpper().setLetters('hello');
+                    example2.getLower().setLetters('world');
                     example2.setLetters('would');
                 }
             }
@@ -73,8 +81,8 @@ export class GameTutorial extends HTMLElement {
             { ...gridConfig, rows: 3 },
             {
                 onLoad: () => {
-                    example3.upper.setLetters('hello');
-                    example3.lower.setLetters('world');
+                    example3.getUpper().setLetters('hello');
+                    example3.getLower().setLetters('world');
                     example3.setLetters('would');
                     example3.submit();
                 }

@@ -1,12 +1,18 @@
+type WordGraph = {
+    [word: string]: string[];
+};
+
 export class GameSolver {
+    graph: WordGraph;
+
     constructor() {
     }
 
-    solve(start, end) {
+    solve(start: string, end: string): string[] {
         const paths = new Map();
         paths.set(start, null);
         var visiting = [start];
-        var toVisit = [];
+        var toVisit: string[] = [];
         while (visiting.length > 0) {
             const current = visiting.pop();
             var done = false;
@@ -42,14 +48,14 @@ export class GameSolver {
         return [];
     }
 
-    loadGraph() {
+    loadGraph(): Promise<GameSolver> {
         const request = new XMLHttpRequest();
-        const promise = new Promise((resolve, reject) => {
+        const promise = new Promise<GameSolver>((resolve) => {
             request.onreadystatechange = e => {
                 if (request.readyState === XMLHttpRequest.DONE) {
                     if (request.status === 200) {
                         this.graph = JSON.parse(request.responseText);
-                        resolve();
+                        resolve(this);
                     }
                 }
             };

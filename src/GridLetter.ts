@@ -1,17 +1,20 @@
 export class GridLetter extends HTMLElement {
-    constructor(letter, pos) {
+    pos: number;
+    letter: string;
+
+    constructor(letter: string | undefined, pos: number) {
         super();
         this.pos = pos;
         this.setLetter(letter || '');
         this.classList.add('letter', 'no-match');
     }
 
-    setLetter(letter) {
+    setLetter(letter: string) {
         this.letter = letter;
         this.innerText = letter;
     }
 
-    setMatch(matchUpper, matchLower) {
+    setMatch(matchUpper: boolean, matchLower: boolean) {
         this.classList.remove('both-match', 'upper-match', 'lower-match', 'no-match');
         if (matchUpper && matchLower) {
             this.classList.add('both-match');
@@ -24,9 +27,8 @@ export class GridLetter extends HTMLElement {
         }
     }
 
-    setHighlight(isHighlighted) {
+    setHighlight(isHighlighted: boolean) {
         this.style.borderColor = isHighlighted ? 'var(--highlight-color)' : 'var(--non-highlight-color)';
     }
 }
-
 customElements.define('grid-letter', GridLetter);

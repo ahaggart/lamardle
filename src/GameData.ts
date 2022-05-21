@@ -1,13 +1,29 @@
 import { COOKIE_EXPIRATION_DAYS } from "./constants";
 
+type PersistedData = {
+    visited: boolean;
+    streak: number;
+    mostRecent: string;
+}
+
+type CookieData = {
+    [name: string]: any;
+};
+
+type CookieParser = {
+    [name: string]: (value: string) => any
+};
+
 export class GameData {
-    schema = {
+    private date: Date;
+    private data: PersistedData;
+    private schema: CookieParser = {
         visited: (value) => value === 'true',
         streak: (value) => parseInt(value),
         mostRecent: (value) => value,
     };
 
-    constructor(date) {
+    constructor(date: Date) {
         this.date = date;
         const cookieData = this.parseCookie();
 
@@ -56,13 +72,13 @@ export class GameData {
         const cookieExpirationDate = new Date();
         cookieExpirationDate.setDate(new Date().getDate() + COOKIE_EXPIRATION_DAYS);
         const expirationString = 'expires=' + cookieExpirationDate.toUTCString();
-        for (let prop in this.data) {
-            document.cookie = prop + '=' + this.data[prop] + ';' + expirationString;
-        }
+        Object.entries(this.data).forEach(([name, value]) => {
+            document.cookie = name + '=' + value.toString() + ';' + expirationString;
+        });
     }
 
-    parseCookie() {
-        const data = {};
+    parseCookie(): CookieData {
+        const data: CookieData = {};
         if (document.cookie) {
             decodeURI(document.cookie)
                 .split(';')
@@ -78,11 +94,19 @@ export class GameData {
         return data;
     }
 
-    formatDate(date) {
+    formatDate(date: Date) {
         return [
             date.getFullYear().toString(),
             (date.getMonth() + 1).toString().padStart(2, '0'),
             date.getDate().toString().padStart(2, '0'),
         ].join('');
+    }
+
+    getDate() {
+        return this.date;
+    }
+
+    getStreak() {
+        return this.data.streak;
     }
 }

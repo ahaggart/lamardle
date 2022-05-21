@@ -1,5 +1,12 @@
+import { GameGrid } from './GameGrid';
+
 export class GameKeyboard extends HTMLElement {
-    constructor(grid) {
+    private grid: GameGrid;
+    private letters: string;
+    private enabled: boolean;
+    private container: HTMLDivElement;
+
+    constructor(grid: GameGrid) {
         super();
 
         this.grid = grid;
@@ -24,7 +31,7 @@ export class GameKeyboard extends HTMLElement {
         this.grid.setLetters(this.letters);
     }
 
-    appendLetter(letter) {
+    appendLetter(letter: string) {
         if (!this.enabled || this.letters.length == 5) {
             return;
         }
@@ -38,7 +45,7 @@ export class GameKeyboard extends HTMLElement {
         }
     }
 
-    createRow(letters) {
+    createRow(letters: string) {
         const row = document.createElement('div');
         row.classList.add('game-keyboard-row');
         for (let letter of letters) {

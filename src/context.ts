@@ -3,7 +3,7 @@ import { WordList } from "./WordList";
 
 
 export const WORD_LIST = new WordList(NUM_LETTERS);
-export function loadWords(callback) {
+export function loadWords(callback: (responseText: string) => void) {
     const request = new XMLHttpRequest();
     request.onreadystatechange = e => {
         if (request.readyState === XMLHttpRequest.DONE) {

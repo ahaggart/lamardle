@@ -1,11 +1,37 @@
 import { HEADER_ICON_SIZE, MAX_WIDTH, GRID_PADDING_WIDTH, KEYBOARD_HEIGHT, HEADER_HEIGHT, DOWN_ARROW, NO_ARROW, UP_ARROW, SOLUTION_MARKER } from "./constants";
 import { GameKeyboard } from "./GameKeyboard";
-import { GameGrid } from "./GameGrid";
+import { GameGrid, GridSolution } from './GameGrid';
 import { GameTutorial } from "./GameTutorial";
 import { GameSolver } from "./GameSolver";
 import { GameData } from "./GameData";
 
-class LamardleGame extends HTMLElement {
+type HeaderIconOptions = {
+    altText?: string;
+    title?: string;
+};
+
+type HeaderLinkOptions = HeaderIconOptions & {
+    newTab?: boolean;
+}
+
+export class LamardleGame extends HTMLElement {
+    gameData: GameData;
+    container: HTMLDivElement;
+    winPopup: HTMLDivElement;
+    keyboard: any;
+    winMessage: HTMLDivElement;
+    winMessageText: HTMLDivElement;
+    winMessageShare: HTMLDivElement;
+    header: HTMLDivElement;
+    spacerLeft: HTMLDivElement;
+    titleText: HTMLDivElement;
+    spacerRight: HTMLDivElement;
+    urlSeed: string;
+    seed: any;
+    tutorial: GameTutorial;
+    grid: GameGrid;
+    solver: GameSolver;
+
     constructor() {
         super();
 
@@ -76,8 +102,8 @@ class LamardleGame extends HTMLElement {
         });
         this.spacerRight.appendChild(helpButton);
 
-        this.urlSeed = new URL(document.location).searchParams.get('seed');
-        const dateSeed = this.gameData.formatDate(this.gameData.date);
+        this.urlSeed = new URL(document.location.href).searchParams.get('seed');
+        const dateSeed = this.gameData.formatDate(this.gameData.getDate());
         this.seed = this.urlSeed ?? dateSeed;
 
         const gridConfig = {
@@ -120,7 +146,11 @@ class LamardleGame extends HTMLElement {
         });
     }
 
-    createHeaderLink(iconPath, linkPath, options = {}) {
+    createHeaderLink(
+        iconPath: string, 
+        linkPath: string, 
+        options: HeaderLinkOptions = {}
+    ): HTMLAnchorElement {
         const link = document.createElement('a');
         link.setAttribute('href', linkPath);
         if (options.newTab)
@@ -129,11 +159,14 @@ class LamardleGame extends HTMLElement {
         return link;
     }
 
-    createHeaderIcon(path, options = {}) {
+    createHeaderIcon(
+        path: string, 
+        options: HeaderIconOptions = {}
+    ): HTMLImageElement {
         const icon = document.createElement('img');
         icon.setAttribute('src', path);
-        icon.setAttribute('width', HEADER_ICON_SIZE);
-        icon.setAttribute('height', HEADER_ICON_SIZE);
+        icon.setAttribute('width', HEADER_ICON_SIZE.toString());
+        icon.setAttribute('height', HEADER_ICON_SIZE.toString());
         if (options.altText) {
             icon.setAttribute('alt', options.altText);
         }
@@ -152,10 +185,10 @@ class LamardleGame extends HTMLElement {
 
     resizeGrid() {
         const leftover = this.grid.resize(this.getGridArea());
-        this.grid.grid.style.marginBottom = leftover + 'px';
+        this.grid.getContainer().style.marginBottom = leftover + 'px';
     }
 
-    computeMatching(solution, matches) {
+    computeMatching(solution: string, matches: string[]) {
         const matchingLetters = [];
         var current = solution;
 
@@ -175,7 +208,11 @@ class LamardleGame extends HTMLElement {
         return matchingLetters;
     }
 
-    formatMatching(sequence, matchChar, nonMatchChar) {
+    formatMatching(
+        sequence: boolean[][], 
+        matchChar: string, 
+        nonMatchChar: string
+    ): string[] {
         return sequence
             .map(rowMatch => rowMatch
                 .map(letterMatch => letterMatch ? matchChar : nonMatchChar)
@@ -183,7 +220,7 @@ class LamardleGame extends HTMLElement {
             );
     }
 
-    createShareMessage(solution, title) {
+    createShareMessage(solution: GridSolution, href: string) {
         const upperSequence = this.formatMatching(
             this.computeMatching(solution.solution, solution.upper),
             DOWN_ARROW, NO_ARROW
@@ -199,8 +236,8 @@ class LamardleGame extends HTMLElement {
         return Array.prototype.concat(
             [
                 'lamardle',
-                title,
-                this.grid.numGuesses + ' tries',
+                href,
+                this.grid.getNumGuesses().toString() + ' tries',
             ],
             upperSequence,
             [solution.solution.split('').map(() => SOLUTION_MARKER).join('')],
@@ -210,23 +247,23 @@ class LamardleGame extends HTMLElement {
 
     computePar() {
         const minSolution = this.solver.solve(
-            this.grid.upperStart,
-            this.grid.lowerStart
+            this.grid.getUpperStart(),
+            this.grid.getLowerStart()
         );
         return Math.max(1, minSolution.length - 2);
     }
 
-    async winGame(solution) {
+    async winGame(solution: GridSolution) {
         const messageLines = [];
-        messageLines.push('You won in ' + this.grid.numGuesses + ' tries!');
+        messageLines.push('You won in ' + this.grid.getNumGuesses() + ' tries!');
 
         await this.solver.loadGraph();
 
         messageLines.push('Par: ' + this.computePar());
 
-        if (this.seed === this.gameData.formatDate(this.gameData.date)) {
+        if (this.seed === this.gameData.formatDate(this.gameData.getDate())) {
             this.gameData.addStreak();
-            messageLines.push('Current Streak: ' + this.gameData.data.streak);
+            messageLines.push('Current Streak: ' + this.gameData.getStreak());
         }
 
         this.winPopup.classList.remove('hidden');

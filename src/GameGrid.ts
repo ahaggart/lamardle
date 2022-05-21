@@ -1,13 +1,51 @@
-import { GridRow } from "./GridRow";
+import { GridRow, GridRowConfig } from "./GridRow";
 import { GRID_ROW_GAP, GRID_PADDING } from "./constants";
 import { WORD_LIST } from "./context";
 
+export type GameGridConfig = {
+    seed: string;
+    letters: number;
+    matches: number;
+    rows: number;
+};
+
+export type GameGridArea = {
+    width: number;
+    height: number;
+};
+
+export type GridSolution = {
+    upper: string[];
+    solution: string;
+    lower: string[];
+};
+
+type GameGridCallbacks = {
+    onWin?: (solution: GridSolution) => void;
+    onLoad?: (grid: GameGrid) => void;
+};
+
 export class GameGrid extends HTMLElement {
-    constructor(config, callbacks) {
+    private config: GameGridConfig;
+    private callbacks: GameGridCallbacks;
+    private rowConfig: GridRowConfig;
+    private numGuesses: number;
+    private upperMatches: string[];
+    private lowerMatches: string[];
+    private grid: HTMLDivElement;
+    private words: string;
+    private upper: GridRow;
+    private upperStart: string;
+    private lower: GridRow;
+    private lowerStart: string;
+    private current: GridRow;
+    width: string;
+
+    constructor(config: GameGridConfig, callbacks: GameGridCallbacks) {
         super();
 
         this.config = config;
-        this.winCallback = callbacks.onWin;
+        this.callbacks = callbacks;
 
         this.rowConfig = {
             letters: this.config.letters,
@@ -22,10 +60,10 @@ export class GameGrid extends HTMLElement {
         this.grid = document.createElement('div');
         this.grid.classList.add('grid');
         this.grid.id = 'grid';
-        this.grid.style.setProperty('--num-rows', this.config.rows);
+        this.grid.style.setProperty('--num-rows', this.config.rows.toString());
         this.appendChild(this.grid);
 
-        WORD_LIST.addListener(words => {
+        WORD_LIST.addListener((words: string) => {
             this.words = words;
             this.createRows();
             if (callbacks.onLoad) {
@@ -34,7 +72,7 @@ export class GameGrid extends HTMLElement {
         });
     }
 
-    getRandomWord(seed) {
+    getRandomWord(seed: string) {
         return this.words[Math.abs(this.getHashCode(seed)) % this.words.length];
     }
 
@@ -54,21 +92,21 @@ export class GameGrid extends HTMLElement {
         const rowsAbove = Math.ceil((this.config.rows - 3) / 2.0);
         const rowsBelow = Math.floor((this.config.rows - 3) / 2.0);
 
-        Array(rowsAbove).fill()
+        Array(rowsAbove).fill(0)
             .forEach(() => this.grid.appendChild(new GridRow(this.rowConfig)));
         this.grid.appendChild(this.upper);
         this.grid.appendChild(this.current);
         this.grid.appendChild(this.lower);
-        Array(rowsBelow).fill()
+        Array(rowsBelow).fill(0)
             .forEach(() => this.grid.appendChild(new GridRow(this.rowConfig)));
     }
 
-    setLetters(letters) {
+    setLetters(letters: string) {
         this.current.setLetters(letters);
         this.current.updateMatches(this.upper, this.lower);
     }
 
-    getTileSize(gridArea) {
+    getTileSize(gridArea: GameGridArea) {
         const columnGapWidth = GRID_ROW_GAP * (this.config.letters - 1);
         const maxTileWidth = Math.floor((gridArea.width - columnGapWidth) / this.config.letters);
 
@@ -84,7 +122,7 @@ export class GameGrid extends HTMLElement {
      * @param {width, height} size
      * @returns amount of "leftover" space under the grid
      */
-    resize(size) {
+    resize(size: GameGridArea) {
         const columnGapWidth = GRID_ROW_GAP * (this.config.letters - 1);
         const rowGapHeight = GRID_ROW_GAP * (this.config.rows - 1);
         const tileSize = this.getTileSize(size);
@@ -102,7 +140,7 @@ export class GameGrid extends HTMLElement {
             return false;
         }
 
-        if (!this.words.includes(this.current.letters)) {
+        if (!this.words.includes(this.current.getLetters())) {
             this.current.wiggle();
             return false;
         }
@@ -118,11 +156,11 @@ export class GameGrid extends HTMLElement {
         this.numGuesses++;
 
         if (upperMatch && lowerMatch) {
-            this.upperMatches.push(this.upper.letters);
-            this.lowerMatches.push(this.lower.letters);
-            this.winCallback({
+            this.upperMatches.push(this.upper.getLetters());
+            this.lowerMatches.push(this.lower.getLetters());
+            this.callbacks.onWin({
                 upper: this.upperMatches,
-                solution: this.current.letters,
+                solution: this.current.getLetters(),
                 lower: this.lowerMatches,
             });
             return true;
@@ -133,13 +171,13 @@ export class GameGrid extends HTMLElement {
         this.current.setHighlight(false);
 
         if (upperMatch) {
-            this.upperMatches.push(this.upper.letters);
+            this.upperMatches.push(this.upper.getLetters());
             this.grid.children[0].remove();
             this.upper = this.current;
             this.current = newRow;
             this.grid.insertBefore(this.current, this.lower);
         } else {
-            this.lowerMatches.push(this.lower.letters);
+            this.lowerMatches.push(this.lower.getLetters());
             this.grid.children[this.grid.children.length - 1].remove();
             this.lower = this.current;
             this.current = newRow;
@@ -149,7 +187,7 @@ export class GameGrid extends HTMLElement {
         return true;
     }
 
-    getHashCode(str) {
+    getHashCode(str: string) {
         var hash = 0;
         for (var i = 0; i < str.length; i++) {
             var code = str.charCodeAt(i);
@@ -157,6 +195,30 @@ export class GameGrid extends HTMLElement {
             hash = hash & hash; // Convert to 32bit integer
         }
         return hash;
+    }
+
+    getUpper() {
+        return this.upper;
+    }
+
+    getLower() {
+        return this.lower;
+    }
+
+    getContainer() {
+        return this.grid;
+    }
+
+    getNumGuesses() {
+        return this.numGuesses;
+    }
+
+    getUpperStart() {
+        return this.upperStart;
+    }
+
+    getLowerStart() {
+        return this.lowerStart;
     }
 }
 customElements.define('game-grid', GameGrid);

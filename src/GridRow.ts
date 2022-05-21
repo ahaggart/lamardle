@@ -1,10 +1,17 @@
 import { GridLetter } from "./GridLetter";
 import { INVALID_ANIMATION_LENGTH_MS } from "./constants";
 
+export type GridRowConfig = {
+    letters: number;
+    matches: number;
+};
+
 export class GridRow extends HTMLElement {
-    tiles = [];
-    letters = '';
-    constructor(config) {
+    private tiles: GridLetter[] = [];
+    private letters: string = '';
+    private config: GridRowConfig;
+
+    constructor(config: GridRowConfig) {
         super();
         this.config = config;
         this.classList.add('grid-row');
@@ -18,7 +25,11 @@ export class GridRow extends HTMLElement {
         this.setLetters(this.getAttribute("letters"));
     }
 
-    setLetters(letters) {
+    getLetters() {
+        return this.letters;
+    }
+
+    setLetters(letters: string) {
         this.letters = letters || '';
         const paddedLetters = this.letters
             .substring(0, this.config.letters)
@@ -29,7 +40,7 @@ export class GridRow extends HTMLElement {
         }
     }
 
-    updateMatches(upper, lower) {
+    updateMatches(upper: GridRow, lower: GridRow) {
         for (let i = 0; i < this.tiles.length; i++) {
             this.tiles[i].setMatch(
                 this.tiles[i].letter === upper.tiles[i].letter,
@@ -38,7 +49,7 @@ export class GridRow extends HTMLElement {
         }
     }
 
-    setHighlight(isHighlighted) {
+    setHighlight(isHighlighted: boolean) {
         this.tiles.forEach(tile => tile.setHighlight(isHighlighted));
     }
 
@@ -46,7 +57,7 @@ export class GridRow extends HTMLElement {
         return this.letters.length === this.config.letters;
     }
 
-    doesMatch(other) {
+    doesMatch(other: GridRow) {
         if (!this.isComplete() || !other.isComplete()) {
             return false;
         }
