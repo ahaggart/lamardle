@@ -5,6 +5,7 @@ import { GameTutorial } from "./GameTutorial";
 import { GameSolver } from "./GameSolver";
 import { GameData } from "./GameData";
 import { WordList } from "./WordList";
+import { RandomWordProvider, MinimumStepsWordProvider } from './WordProvider';
 
 type HeaderIconOptions = {
     altText?: string;
@@ -19,7 +20,7 @@ export class LamardleGame extends HTMLElement {
     private gameData: GameData;
     private container: HTMLDivElement;
     private winPopup: HTMLDivElement;
-    private keyboard: any;
+    private keyboard: GameKeyboard;
     private winMessage: HTMLDivElement;
     private winMessageText: HTMLDivElement;
     private winMessageShare: HTMLDivElement;
@@ -28,7 +29,8 @@ export class LamardleGame extends HTMLElement {
     private titleText: HTMLDivElement;
     private spacerRight: HTMLDivElement;
     private urlSeed: string;
-    private seed: any;
+    private seed: string;
+    private mode: string;
     private tutorial: GameTutorial;
     private grid: GameGrid;
     private solver: GameSolver;
@@ -109,6 +111,8 @@ export class LamardleGame extends HTMLElement {
         const dateSeed = this.gameData.formatDate(this.gameData.getDate());
         this.seed = this.urlSeed ?? dateSeed;
 
+        this.mode = new URL(document.location.href).searchParams.get('mode');
+
         const gridConfig = {
             seed: this.seed,
             rows: NUM_ROWS,
@@ -138,7 +142,19 @@ export class LamardleGame extends HTMLElement {
         this.resizeGrid();
         window.addEventListener('resize', () => this.resizeGrid());
 
-        this.wordList.loadWords().then(words => this.grid.initialize(words));
+        this.wordList.loadWords().then(words => {
+            if (this.mode === 'hard') {
+                new MinimumStepsWordProvider(words, this.seed, 4, this.solver)
+                    .onceInitialized(provider => {
+                        this.grid.initialize(words, provider);
+                    })
+            } else {
+                this.grid.initialize(
+                    words, 
+                    new RandomWordProvider(words, this.seed)
+                );
+            }
+        });
 
         document.addEventListener('keydown', e => {
             if (e.key === 'Backspace') {

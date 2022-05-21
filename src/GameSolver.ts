@@ -9,32 +9,40 @@ export class GameSolver {
     constructor() {
     }
 
-    solve(start: string, end: string): string[] {
-        const paths = new Map();
-        paths.set(start, null);
-        var visiting = [start];
-        var toVisit: string[] = [];
-        while (visiting.length > 0) {
-            const current = visiting.pop();
-            var done = false;
-            this.graph[current].forEach(word => {
-                if (!paths.has(word)) {
-                    paths.set(word, current);
-                    toVisit.push(word);
-                    if (word === end)
-                        done = true;
-                }
-            });
-
-            if (done) {
-                break;
-            }
-
-            if (visiting.length === 0 && toVisit.length !== 0) {
-                visiting = toVisit;
-                toVisit = [];
+    getLayer(start: string, targetLayerNumber: number): string[] {
+        const layer: string[] = [];
+        const visitor = function(
+            word: string, 
+            parent: string, 
+            layerNumber: number
+        ): boolean {
+            if (layerNumber > targetLayerNumber) {
+                return true;
+            } else if (layerNumber == targetLayerNumber) {
+                layer.push(word);
+                return false;
+            } else {
+                return false;
             }
         }
+
+        this.traverse(start, visitor);
+
+        return layer;
+    }
+
+    solve(start: string, end: string): string[] {
+        const paths = new Map();
+        const visitor = function(
+            word: string, 
+            parent: string, 
+            layerNumber: number
+        ): boolean {
+            paths.set(word, parent);
+            return word === end;
+        }
+
+        this.traverse(start, visitor);
 
         const path = [end];
         var current = end;
@@ -47,6 +55,43 @@ export class GameSolver {
         }
 
         return [];
+    }
+
+    traverse(
+        start: string, 
+        visitor: (word: string, parentWord: string, layer: number) => boolean
+    ): void {
+        const visited = new Set();
+        var currentLayerNumber = 0;
+        var currentLayer: string[] = [];
+        var nextLayer: string[] = [];
+
+        // bootstrap the traversal
+        visited.add(start);
+        currentLayer.push(start);
+        var done = visitor(start, null, currentLayerNumber);
+
+        while (currentLayer.length > 0) {
+            const current = currentLayer.pop();
+            var done = false;
+            this.graph[current].forEach(word => {
+                if (!visited.has(word)) {
+                    visited.add(word);
+                    nextLayer.push(word);
+                    done = visitor(word, current, currentLayerNumber + 1) || done;
+                }
+            });
+
+            if (done) {
+                break;
+            }
+
+            if (currentLayer.length === 0 && nextLayer.length !== 0) {
+                currentLayerNumber++;
+                currentLayer = nextLayer;
+                nextLayer = [];
+            }
+        }
     }
 
     loadGraph(): Promise<GameSolver> {

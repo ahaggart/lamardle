@@ -1,5 +1,6 @@
 import { GRID_PADDING, GRID_ROW_GAP, GRID_COL_GAP } from './constants';
 import { GridRow, GridRowConfig } from "./GridRow";
+import { WordProvider } from './WordProvider';
 
 export type GameGridConfig = {
     seed: string;
@@ -69,10 +70,6 @@ export class GameGrid extends HTMLElement {
         this.createRows();
     }
 
-    getRandomWord(seed: string) {
-        return this.words[Math.abs(this.getHashCode(seed)) % this.words.length];
-    }
-
     createRows() {
         this.upper = new GridRow(this.rowConfig);
         this.lower = new GridRow(this.rowConfig);
@@ -93,11 +90,11 @@ export class GameGrid extends HTMLElement {
             .forEach(() => this.grid.appendChild(new GridRow(this.rowConfig)));
     }
 
-    initialize(words: string[]) {
+    initialize(words: string[], provider: WordProvider) {
         this.words = words;
-        this.upperStart = this.getRandomWord(this.config.seed);
+        this.upperStart = provider.getUpper();
         this.upper.setLetters(this.upperStart);
-        this.lowerStart = this.getRandomWord(this.config.seed + 'salt');
+        this.lowerStart = provider.getLower();
         this.lower.setLetters(this.lowerStart);
     }
 
@@ -187,16 +184,6 @@ export class GameGrid extends HTMLElement {
         }
 
         return true;
-    }
-
-    getHashCode(str: string) {
-        var hash = 0;
-        for (var i = 0; i < str.length; i++) {
-            var code = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + code;
-            hash = hash & hash; // Convert to 32bit integer
-        }
-        return hash;
     }
 
     getUpper() {
