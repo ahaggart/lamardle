@@ -38,17 +38,11 @@ export class GameTutorial extends HTMLElement {
             'letters in the same position.'
         ]));
 
-        const example1 = new GameGrid(
-            { ...gridConfig, rows: 3 },
-            {
-                onLoad: () => {
-                    example1.getUpper().setLetters('hello');
-                    example1.getLower().setLetters('world');
-                }
-            }
-        );
-
+        const example1 = new GameGrid({ ...gridConfig, rows: 3 });
         example1.resize({ width: gridArea.width, height: 200 });
+        example1.getUpper().setLetters('hello');
+        example1.getLower().setLetters('world');
+
         this.textContainer.appendChild(example1);
 
         this.textContainer.appendChild(paragraph([
@@ -56,18 +50,12 @@ export class GameTutorial extends HTMLElement {
             'will replace that word. If the word matches both words, you win!'
         ]));
 
-        const example2 = new GameGrid(
-            { ...gridConfig, rows: 3 },
-            {
-                onLoad: () => {
-                    example2.getUpper().setLetters('hello');
-                    example2.getLower().setLetters('world');
-                    example2.setLetters('would');
-                }
-            }
-        );
-
+        const example2 = new GameGrid({ ...gridConfig, rows: 3 });
         example2.resize({ width: gridArea.width, height: 200 });
+        example2.getUpper().setLetters('hello');
+        example2.getLower().setLetters('world');
+        example2.setLetters('would');
+
         this.textContainer.appendChild(example2);
 
         this.textContainer.appendChild(paragraph([
@@ -77,19 +65,12 @@ export class GameTutorial extends HTMLElement {
             'next word should match either "hello" or "would".'
         ]));
 
-        const example3 = new GameGrid(
-            { ...gridConfig, rows: 3 },
-            {
-                onLoad: () => {
-                    example3.getUpper().setLetters('hello');
-                    example3.getLower().setLetters('world');
-                    example3.setLetters('would');
-                    example3.submit();
-                }
-            }
-        );
-
+        const example3 = new GameGrid({ ...gridConfig, rows: 3 });
         example3.resize({ width: gridArea.width, height: 200 });
+        example3.getUpper().setLetters('hello');
+        example3.getLower().setLetters('world');
+        example3.setLetters('would');
+        example3.submit({ checkWords: false });
 
         this.textContainer.appendChild(example3);
 

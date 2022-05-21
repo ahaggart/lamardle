@@ -1,9 +1,10 @@
-import { HEADER_ICON_SIZE, MAX_WIDTH, GRID_PADDING_WIDTH, KEYBOARD_HEIGHT, HEADER_HEIGHT, DOWN_ARROW, NO_ARROW, UP_ARROW, SOLUTION_MARKER } from "./constants";
+import { HEADER_ICON_SIZE, MAX_WIDTH, GRID_PADDING_WIDTH, KEYBOARD_HEIGHT, HEADER_HEIGHT, DOWN_ARROW, NO_ARROW, UP_ARROW, SOLUTION_MARKER, NUM_LETTERS, REQUIRED_MATCHES, NUM_ROWS } from './constants';
 import { GameKeyboard } from "./GameKeyboard";
 import { GameGrid, GridSolution } from './GameGrid';
 import { GameTutorial } from "./GameTutorial";
 import { GameSolver } from "./GameSolver";
 import { GameData } from "./GameData";
+import { WordList } from "./WordList";
 
 type HeaderIconOptions = {
     altText?: string;
@@ -31,11 +32,13 @@ export class LamardleGame extends HTMLElement {
     private tutorial: GameTutorial;
     private grid: GameGrid;
     private solver: GameSolver;
+    private wordList: WordList;
 
     constructor() {
         super();
 
         this.gameData = new GameData(new Date());
+        this.wordList = new WordList();
 
         this.container = document.createElement('div');
         this.container.classList.add('container');
@@ -108,9 +111,9 @@ export class LamardleGame extends HTMLElement {
 
         const gridConfig = {
             seed: this.seed,
-            rows: 7,
-            letters: 5,
-            matches: 3,
+            rows: NUM_ROWS,
+            letters: NUM_LETTERS,
+            matches: REQUIRED_MATCHES,
         };
 
         this.tutorial = new GameTutorial(
@@ -134,6 +137,8 @@ export class LamardleGame extends HTMLElement {
 
         this.resizeGrid();
         window.addEventListener('resize', () => this.resizeGrid());
+
+        this.wordList.loadWords().then(words => this.grid.initialize(words));
 
         document.addEventListener('keydown', e => {
             if (e.key === 'Backspace') {

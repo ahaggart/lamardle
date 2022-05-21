@@ -1,9 +1,8 @@
-const REQUIRED_MATCHES = 3;
+export const REQUIRED_MATCHES = 3;
 export const GRID_ROW_GAP = 5;
-const GRID_COL_GAP = 5;
+export const GRID_COL_GAP = 5;
 export const MAX_WIDTH = 500;
-const KEYBOARD_HEIGHT_MIN_PERCENT = 0.25;
-const NUM_ROWS = 7;
+export const NUM_ROWS = 7;
 export const NUM_LETTERS = 5;
 const KEY_HEIGHT = 58;
 const KEY_MARGIN = 5;

@@ -1,6 +1,5 @@
+import { GRID_PADDING, GRID_ROW_GAP, GRID_COL_GAP } from './constants';
 import { GridRow, GridRowConfig } from "./GridRow";
-import { GRID_ROW_GAP, GRID_PADDING } from "./constants";
-import { WORD_LIST } from "./context";
 
 export type GameGridConfig = {
     seed: string;
@@ -25,6 +24,10 @@ type GameGridCallbacks = {
     onLoad?: (grid: GameGrid) => void;
 };
 
+type SubmitOptions = {
+    checkWords?: boolean;
+}
+
 export class GameGrid extends HTMLElement {
     private config: GameGridConfig;
     private callbacks: GameGridCallbacks;
@@ -41,7 +44,7 @@ export class GameGrid extends HTMLElement {
     private current: GridRow;
     width: string;
 
-    constructor(config: GameGridConfig, callbacks: GameGridCallbacks) {
+    constructor(config: GameGridConfig, callbacks: GameGridCallbacks = {}) {
         super();
 
         this.config = config;
@@ -63,13 +66,7 @@ export class GameGrid extends HTMLElement {
         this.grid.style.setProperty('--num-rows', this.config.rows.toString());
         this.appendChild(this.grid);
 
-        WORD_LIST.addListener((words: string[]) => {
-            this.words = words;
-            this.createRows();
-            if (callbacks.onLoad) {
-                callbacks.onLoad(this);
-            }
-        });
+        this.createRows();
     }
 
     getRandomWord(seed: string) {
@@ -78,12 +75,7 @@ export class GameGrid extends HTMLElement {
 
     createRows() {
         this.upper = new GridRow(this.rowConfig);
-        this.upperStart = this.getRandomWord(this.config.seed);
-        this.upper.setLetters(this.upperStart);
-
         this.lower = new GridRow(this.rowConfig);
-        this.lowerStart = this.getRandomWord(this.config.seed + 'salt');
-        this.lower.setLetters(this.lowerStart);
         this.lower.id = 'goal';
 
         this.current = new GridRow(this.rowConfig);
@@ -101,13 +93,21 @@ export class GameGrid extends HTMLElement {
             .forEach(() => this.grid.appendChild(new GridRow(this.rowConfig)));
     }
 
+    initialize(words: string[]) {
+        this.words = words;
+        this.upperStart = this.getRandomWord(this.config.seed);
+        this.upper.setLetters(this.upperStart);
+        this.lowerStart = this.getRandomWord(this.config.seed + 'salt');
+        this.lower.setLetters(this.lowerStart);
+    }
+
     setLetters(letters: string) {
         this.current.setLetters(letters);
         this.current.updateMatches(this.upper, this.lower);
     }
 
     getTileSize(gridArea: GameGridArea) {
-        const columnGapWidth = GRID_ROW_GAP * (this.config.letters - 1);
+        const columnGapWidth = GRID_COL_GAP * (this.config.letters - 1);
         const maxTileWidth = Math.floor((gridArea.width - columnGapWidth) / this.config.letters);
 
         const gridPaddingHeight = GRID_PADDING * 2;
@@ -134,13 +134,15 @@ export class GameGrid extends HTMLElement {
         return (size.height - gridHeight - 10);
     }
 
-    submit() {
+    submit({
+        checkWords = true
+    }: SubmitOptions = {}) {
         if (!this.current.isComplete()) {
             this.current.wiggle();
             return false;
         }
 
-        if (!this.words.includes(this.current.getLetters())) {
+        if (checkWords && !this.words.includes(this.current.getLetters())) {
             this.current.wiggle();
             return false;
         }

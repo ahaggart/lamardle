@@ -4,6 +4,7 @@ type WordGraph = {
 
 export class GameSolver {
     graph: WordGraph;
+    private onLoad: Promise<GameSolver> | undefined;
 
     constructor() {
     }
@@ -49,20 +50,22 @@ export class GameSolver {
     }
 
     loadGraph(): Promise<GameSolver> {
-        const request = new XMLHttpRequest();
-        const promise = new Promise<GameSolver>((resolve) => {
-            request.onreadystatechange = e => {
-                if (request.readyState === XMLHttpRequest.DONE) {
-                    if (request.status === 200) {
-                        this.graph = JSON.parse(request.responseText);
-                        resolve(this);
+        if (this.onLoad === undefined) {
+            this.onLoad = new Promise<GameSolver>((resolve) => {
+                const request = new XMLHttpRequest();
+                request.onreadystatechange = e => {
+                    if (request.readyState === XMLHttpRequest.DONE) {
+                        if (request.status === 200) {
+                            this.graph = JSON.parse(request.responseText);
+                            resolve(this);
+                        }
                     }
-                }
-            };
-            request.open('GET', 'graph.json');
-            request.send();
-        });
+                };
+                request.open('GET', 'graph.json');
+                request.send();
+            });
+        }
 
-        return promise;
+        return this.onLoad;
     }
 }
