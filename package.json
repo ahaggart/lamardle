@@ -1,0 +1,35 @@
+{
+  "name": "lamardle",
+  "version": "1.0.0",
+  "description": "word game for mother's day",
+  "private": "true",
+  "directories": {
+    "doc": "docs"
+  },
+  "dependencies": {
+    "npm": "^8.10.0"
+  },
+  "devDependencies": {
+    "ts-loader": "^9.3.0",
+    "typescript": "^4.6.4",
+    "webpack": "^5.72.1",
+    "webpack-cli": "^4.9.2"
+  },
+  "scripts": {
+    "build": "npx webpack --mode development",
+    "release": "npx webpack --mode production"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahaggart/lamardle.git"
+  },
+  "keywords": [
+    "wordle"
+  ],
+  "author": "Alexander Haggart",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ahaggart/lamardle/issues"
+  },
+  "homepage": "https://github.com/ahaggart/lamardle#readme"
+}

@@ -1,0 +1,276 @@
+import { HEADER_ICON_SIZE, MAX_WIDTH, GRID_PADDING_WIDTH, KEYBOARD_HEIGHT, HEADER_HEIGHT, DOWN_ARROW, NO_ARROW, UP_ARROW, SOLUTION_MARKER } from "./constants";
+import { GameKeyboard } from "./GameKeyboard";
+import { GameGrid } from "./GameGrid";
+import { GameTutorial } from "./GameTutorial";
+import { GameSolver } from "./GameSolver";
+import { GameData } from "./GameData";
+
+class LamardleGame extends HTMLElement {
+    constructor() {
+        super();
+
+        this.gameData = new GameData(new Date());
+
+        this.container = document.createElement('div');
+        this.container.classList.add('container');
+        this.appendChild(this.container);
+
+        this.winPopup = document.createElement('div');
+        this.winPopup.classList.add('overlay', 'hidden');
+        this.container.appendChild(this.winPopup);
+        this.winPopup.onclick = () => {
+            this.winPopup.classList.add('hidden');
+            this.keyboard.disable();
+            // this.keyboard.hide();
+        };
+
+        this.winMessage = document.createElement('div');
+        this.winMessage.classList.add('winMessage');
+        this.winPopup.appendChild(this.winMessage);
+
+        this.winMessageText = document.createElement('div');
+        this.winMessage.appendChild(this.winMessageText);
+
+        this.winMessageShare = document.createElement('div');
+        this.winMessageShare.classList.add('share-result');
+        this.winMessageShare.innerText = 'Share!';
+        this.winMessage.appendChild(this.winMessageShare);
+
+        this.header = document.createElement('div');
+        this.header.classList.add('header');
+        this.container.appendChild(this.header);
+
+        this.spacerLeft = document.createElement('div');
+        this.spacerLeft.classList.add('spacer-left');
+        this.header.appendChild(this.spacerLeft);
+
+        this.spacerLeft.appendChild(this.createHeaderLink(
+            'home.svg',
+            this.getDailyPuzzleLink(),
+            { altText: 'go to daily puzzle' }
+        ));
+
+        this.spacerLeft.appendChild(this.createHeaderLink(
+            'dice-3.svg',
+            this.getRandomPuzzleLink(),
+            { altText: 'go to random puzzle' }
+        ));
+
+        this.titleText = document.createElement('div');
+        this.titleText.innerText = 'LAMARDLE';
+        this.titleText.classList.add('title-text');
+        this.header.appendChild(this.titleText);
+
+        this.spacerRight = document.createElement('div');
+        this.spacerRight.classList.add('spacer-right');
+        this.header.appendChild(this.spacerRight);
+
+        this.spacerRight.appendChild(this.createHeaderLink(
+            'source.svg',
+            'https://github.com/ahaggart/lamardle',
+            { newTab: true, altText: 'go to source code' }
+        ));
+
+        const helpButton = this.createHeaderIcon('help.svg', {
+            altText: 'show tutorial'
+        });
+        this.spacerRight.appendChild(helpButton);
+
+        this.urlSeed = new URL(document.location).searchParams.get('seed');
+        const dateSeed = this.gameData.formatDate(this.gameData.date);
+        this.seed = this.urlSeed ?? dateSeed;
+
+        const gridConfig = {
+            seed: this.seed,
+            rows: 7,
+            letters: 5,
+            matches: 3,
+        };
+
+        this.tutorial = new GameTutorial(
+            this.gameData,
+            gridConfig,
+            this.getGridArea()
+        );
+        this.container.appendChild(this.tutorial);
+
+        helpButton.onclick = () => this.tutorial.show();
+
+        this.grid = new GameGrid(gridConfig, {
+            onWin: solution => this.winGame(solution),
+        });
+        this.container.append(this.grid);
+
+        this.keyboard = new GameKeyboard(this.grid);
+        this.container.append(this.keyboard);
+
+        this.solver = new GameSolver();
+
+        this.resizeGrid();
+        window.addEventListener('resize', () => this.resizeGrid());
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Backspace') {
+                this.keyboard.backspace();
+            } else if (e.key === 'Enter') {
+                this.keyboard.submit();
+            } else if (e.key.match(/^[a-z]$/)) {
+                this.keyboard.appendLetter(e.key);
+            }
+        });
+    }
+
+    createHeaderLink(iconPath, linkPath, options = {}) {
+        const link = document.createElement('a');
+        link.setAttribute('href', linkPath);
+        if (options.newTab)
+            link.setAttribute('target', '_blank');
+        link.appendChild(this.createHeaderIcon(iconPath, options));
+        return link;
+    }
+
+    createHeaderIcon(path, options = {}) {
+        const icon = document.createElement('img');
+        icon.setAttribute('src', path);
+        icon.setAttribute('width', HEADER_ICON_SIZE);
+        icon.setAttribute('height', HEADER_ICON_SIZE);
+        if (options.altText) {
+            icon.setAttribute('alt', options.altText);
+        }
+        if (options.title || options.altText) {
+            icon.setAttribute('title', options.title ?? options.altText);
+        }
+        return icon;
+    }
+
+    getGridArea() {
+        return {
+            width: Math.min(MAX_WIDTH, window.innerWidth - GRID_PADDING_WIDTH),
+            height: window.innerHeight - KEYBOARD_HEIGHT - HEADER_HEIGHT,
+        };
+    }
+
+    resizeGrid() {
+        const leftover = this.grid.resize(this.getGridArea());
+        this.grid.grid.style.marginBottom = leftover + 'px';
+    }
+
+    computeMatching(solution, matches) {
+        const matchingLetters = [];
+        var current = solution;
+
+        // iterate the array in reverse
+        for (let i = 0; i < matches.length; i++) {
+            const next = matches[matches.length - i - 1];
+            const currentMatch = current
+                .split('')
+                .map((letter, pos) => [letter, next.charAt(pos)])
+                .map(([a, b]) => a === b);
+            matchingLetters.push(currentMatch);
+            current = next;
+        }
+        // reverse the output
+        matchingLetters.reverse();
+
+        return matchingLetters;
+    }
+
+    formatMatching(sequence, matchChar, nonMatchChar) {
+        return sequence
+            .map(rowMatch => rowMatch
+                .map(letterMatch => letterMatch ? matchChar : nonMatchChar)
+                .join('')
+            );
+    }
+
+    createShareMessage(solution, title) {
+        const upperSequence = this.formatMatching(
+            this.computeMatching(solution.solution, solution.upper),
+            DOWN_ARROW, NO_ARROW
+        );
+
+        const lowerSequence = this.formatMatching(
+            this.computeMatching(solution.solution, solution.lower),
+            UP_ARROW, NO_ARROW
+        );
+
+        lowerSequence.reverse();
+
+        return Array.prototype.concat(
+            [
+                'lamardle',
+                title,
+                this.grid.numGuesses + ' tries',
+            ],
+            upperSequence,
+            [solution.solution.split('').map(() => SOLUTION_MARKER).join('')],
+            lowerSequence
+        ).join('\n');
+    }
+
+    computePar() {
+        const minSolution = this.solver.solve(
+            this.grid.upperStart,
+            this.grid.lowerStart
+        );
+        return Math.max(1, minSolution.length - 2);
+    }
+
+    async winGame(solution) {
+        const messageLines = [];
+        messageLines.push('You won in ' + this.grid.numGuesses + ' tries!');
+
+        await this.solver.loadGraph();
+
+        messageLines.push('Par: ' + this.computePar());
+
+        if (this.seed === this.gameData.formatDate(this.gameData.date)) {
+            this.gameData.addStreak();
+            messageLines.push('Current Streak: ' + this.gameData.data.streak);
+        }
+
+        this.winPopup.classList.remove('hidden');
+
+        this.winMessageText.innerText = messageLines.join('\n');
+        this.winMessageShare.onclick = e => {
+            e.stopPropagation();
+            const shareMessage = this.createShareMessage(
+                solution,
+                document.location.origin + '?seed=' + this.seed
+            );
+            const failMessage = 'Failed to Share :(';
+
+            const oldText = this.winMessageShare.innerText;
+            if (navigator.share) {
+                navigator.share({
+                    title: document.title,
+                    text: shareMessage,
+                })
+                    .catch(() => this.winMessageShare.innerText = failMessage);
+            } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(shareMessage);
+                this.winMessageShare.innerText = 'Copied to clipboard!';
+                window.setTimeout(() => this.winMessageShare.innerText = oldText, 3000);
+            } else {
+                this.winMessageShare.innerText = failMessage;
+            }
+        };
+    }
+
+    getDailyPuzzleLink() {
+        return './';
+    }
+
+    getRandomPuzzleLink() {
+        return './?seed=' + this.randomString();
+    }
+
+    randomString() {
+        const codes = [];
+        for (let i = 0; i < 16; i++) {
+            codes.push(Math.floor(Math.random() * 10));
+        }
+        return codes.join('');
+    }
+}
+customElements.define('lamardle-game', LamardleGame);
