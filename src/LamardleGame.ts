@@ -308,9 +308,12 @@ export class LamardleGame extends HTMLElement {
 
         this.winMessageShare.onclick = e => {
             e.stopPropagation();
+            const shareUrl = new URL(document.location.href);
+            console.log(document.location.href)
+            shareUrl.searchParams.set('seed', this.seed);
             const shareMessage = this.createShareMessage(
                 solution,
-                document.location.origin + '?seed=' + this.seed
+                shareUrl.toString()
             );
             const failMessage = 'Failed to Share :(';
 
