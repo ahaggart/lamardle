@@ -35,12 +35,14 @@ export class LamardleGame extends HTMLElement {
     private grid: GameGrid;
     private solver: GameSolver;
     private wordList: WordList;
+    private winMessageHardmode: HTMLAnchorElement;
 
     constructor() {
         super();
 
         this.gameData = new GameData(new Date());
         this.wordList = new WordList();
+        this.mode = new URL(document.location.href).searchParams.get('mode');
 
         this.container = document.createElement('div');
         this.container.classList.add('container');
@@ -63,9 +65,24 @@ export class LamardleGame extends HTMLElement {
         this.winMessage.appendChild(this.winMessageText);
 
         this.winMessageShare = document.createElement('div');
-        this.winMessageShare.classList.add('share-result');
+        this.winMessageShare.classList.add('win-msg-button', 'share-result');
         this.winMessageShare.innerText = 'Share!';
         this.winMessage.appendChild(this.winMessageShare);
+
+        this.winMessageHardmode = document.createElement('a');
+        this.winMessageHardmode.classList.add('win-msg-button', 'try-hard-mode');
+        this.winMessageHardmode.innerText = 'Try Hard Mode!';
+        const hardModeUrl = new URL(document.location.href);
+        hardModeUrl.searchParams.set('mode', 'hard')
+        this.winMessageHardmode.setAttribute('target', '_blank');
+        this.winMessageHardmode.href = hardModeUrl.toString();
+        this.winMessageHardmode.onclick = e => {
+            e.stopPropagation();
+        }
+        if (this.mode === 'hard') {
+            this.winMessageHardmode.classList.add('hidden');
+        }
+        this.winMessage.appendChild(this.winMessageHardmode);
 
         this.header = document.createElement('div');
         this.header.classList.add('header');
@@ -110,8 +127,6 @@ export class LamardleGame extends HTMLElement {
         this.urlSeed = new URL(document.location.href).searchParams.get('seed');
         const dateSeed = this.gameData.formatDate(this.gameData.getDate());
         this.seed = this.urlSeed ?? dateSeed;
-
-        this.mode = new URL(document.location.href).searchParams.get('mode');
 
         const gridConfig = {
             seed: this.seed,
@@ -290,6 +305,7 @@ export class LamardleGame extends HTMLElement {
         this.winPopup.classList.remove('hidden');
 
         this.winMessageText.innerText = messageLines.join('\n');
+
         this.winMessageShare.onclick = e => {
             e.stopPropagation();
             const shareMessage = this.createShareMessage(

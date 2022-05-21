@@ -10,6 +10,7 @@
     --main-background-color: #330b36;
     --tile-text-color: lightgray;
     --share-button-color: #28ba25;
+    --hard-mode-button-color: #3478d1;
 
     --header-button-margin: 10px;
 }
@@ -177,7 +178,7 @@ html,body {
 }
 
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 .tutorial {
@@ -202,12 +203,23 @@ html,body {
     text-align: center;
 }
 
-.share-result {
-    background-color: var(--share-button-color);
+.win-msg-button {
     border-radius: 4px;
     padding: 10px;
     font-size: 1rem;
     cursor: pointer;
+    margin-bottom: 5px;
+    color: black;
+}
+
+.share-result {
+    background-color: var(--share-button-color);
+}
+
+.try-hard-mode {
+    display: block;
+    text-decoration: none;
+    background-color: var(--hard-mode-button-color);
 }
 
 .letter.upper-match {
