@@ -159,7 +159,7 @@ export class LamardleGame extends HTMLElement {
 
         this.wordList.loadWords().then(words => {
             if (this.mode === 'hard') {
-                new MinimumStepsWordProvider(words, this.seed, 4, this.solver)
+                new MinimumStepsWordProvider(words, this.seed, 5, this.solver)
                     .onceInitialized(provider => {
                         this.grid.initialize(words, provider);
                     })

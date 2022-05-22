@@ -65,7 +65,13 @@ export class MinimumStepsWordProvider implements WordProvider {
 
     getLower(): string {
         const upper = this.getUpper();
-        const choices = this.solver.getLayer(upper, this.minSteps);
+        var numLayers = this.minSteps + 1;
+        var choices = this.solver.getLayer(upper, numLayers);
+        // if we can't find anthing, try again with a closer layer
+        while (choices.length == 0) {
+            numLayers--;
+            choices = this.solver.getLayer(upper, numLayers);
+        }
         return getRandomWord(choices, this.seed);
     }
 }
